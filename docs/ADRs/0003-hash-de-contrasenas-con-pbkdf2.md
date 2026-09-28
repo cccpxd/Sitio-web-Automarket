@@ -2,7 +2,7 @@
 
 - **Estado:** Aceptado
 - **Fecha:** 2026-09-27
-- **Autores:** [nombres del equipo]
+- **Autores:** Cristian Camilo Colorado; Juan Jose Patiño; Juan Manuel Ramos
 
 ## Contexto
 
