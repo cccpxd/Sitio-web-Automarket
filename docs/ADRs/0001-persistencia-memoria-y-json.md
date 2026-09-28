@@ -2,10 +2,7 @@
 
 - **Estado:** Aceptado
 - **Fecha:** 2026-09-27
-- **Autores:**
-- Cristian Camilo Colorado
-- Juan Jose Patiño
-- Juan Manuel Ramos
+- **Autores:** Cristian Camilo Colorado; Juan Jose Patiño; Juan Manuel Ramos
 
 ## Contexto
 
