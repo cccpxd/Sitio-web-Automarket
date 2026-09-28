@@ -14,7 +14,6 @@ Gin atiende varias peticiones al mismo tiempo. El acceso a los datos debe ser se
 
 Los datos viven en memoria (mapas y slices de Go) y se guardan en archivos JSON. Al arrancar, el servidor carga los archivos. Cada cambio se escribe de vuelta al archivo.
 
-- El acceso a los datos se protege con `sync.Mutex` (o `sync.RWMutex`).
 - El acceso a los datos va detrás de interfaces pequeñas, por ejemplo `UsuarioRepositorio` y `VehiculoRepositorio`.
 - Al escribir, se crea un archivo temporal y luego se renombra. Así un fallo a medias no daña el archivo original.
 
