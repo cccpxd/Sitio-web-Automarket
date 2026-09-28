@@ -22,13 +22,6 @@ Esta rama contiene una versión inicial de la aplicación con una landing page d
 - `templates/index.html` — vista de la página de inicio
 - `static/css/style.css` — estilos de la interfaz
 
-## Funcionalidades actuales
-
-- Página principal con branding de AutoMarket
-- Sección hero con mensaje principal
-- Beneficios: financiamiento, verificación y entrega rápida
-- Catálogo de vehículos recomendados
-- Footer con información de contacto
 
 ## Cómo ejecutar
 
