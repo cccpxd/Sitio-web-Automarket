@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{.title}}</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <header class="topbar dashboard-header">
+      <div class="container nav">
+        <div class="brand">AutoMarket</div>
+        <nav>
+          <a href="/dashboard">Dashboard</a>
+          <a href="/admin-panel">Administración</a>
+        </nav>
+        <a class="btn-primary" href="/logout">Cerrar sesión</a>
+      </div>
+    </header>
+    <main class="container dashboard-main">
+      <div class="welcome-card">
+        <p class="eyebrow">Panel</p>
+        <h1>Administración</h1>
+        <p>Usuario autenticado: {{.user.Name}}</p>
+        <p>Rol: {{.user.Role}}</p>
+      </div>
+    </main>
+  </body>
+</html>
