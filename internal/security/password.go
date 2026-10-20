@@ -1,80 +1,100 @@
 package security
 
 import (
+	"crypto/pbkdf2"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/hex"
+	"crypto/subtle"
+	"encoding/base64"
 	"errors"
-	"time"
+	"fmt"
+	"strconv"
+	"strings"
 )
 
 const (
-	passwordIterations = 20000
+	// DefaultIterations follows the OWASP recommendation for PBKDF2-HMAC-SHA256.
+	DefaultIterations = 600_000
+
+	passwordAlgorithm = "pbkdf2-sha256"
+	saltLength        = 16
+	keyLength         = 32
 )
 
-func HashPassword(password string) (hash string, salt string, err error) {
+// DummyPasswordHash is verified for unknown accounts to reduce timing-based
+// user enumeration. It is not a secret and does not belong to any account.
+const DummyPasswordHash = "pbkdf2-sha256$600000$YXV0b21hcmtldC1kdW1teQ$F5F0RmYR6EvdmWFjLJ4QSj4qTl9AkXq9URcXHZQA0SE"
+
+// PBKDF2Hasher implements the PasswordHasher port with PBKDF2-HMAC-SHA256.
+type PBKDF2Hasher struct {
+	iterations int
+}
+
+func NewPBKDF2Hasher(iterations int) (*PBKDF2Hasher, error) {
+	if iterations <= 0 {
+		return nil, errors.New("password hasher: iterations must be positive")
+	}
+	return &PBKDF2Hasher{iterations: iterations}, nil
+}
+
+func (h *PBKDF2Hasher) Hash(password string) (string, error) {
 	if password == "" {
-		return "", "", errors.New("la contraseña no puede estar vacía")
+		return "", errors.New("password hasher: password is empty")
 	}
 
-	saltBytes := make([]byte, 16)
-	if _, err = rand.Read(saltBytes); err != nil {
-		return "", "", err
+	salt := make([]byte, saltLength)
+	if _, err := rand.Read(salt); err != nil {
+		return "", fmt.Errorf("password hasher: generate salt: %w", err)
 	}
 
-	hashBytes := hashPasswordBytes([]byte(password), saltBytes)
-	return hex.EncodeToString(hashBytes), hex.EncodeToString(saltBytes), nil
+	key, err := pbkdf2.Key(sha256.New, password, salt, h.iterations, keyLength)
+	if err != nil {
+		return "", fmt.Errorf("password hasher: derive key: %w", err)
+	}
+
+	return fmt.Sprintf(
+		"%s$%d$%s$%s",
+		passwordAlgorithm,
+		h.iterations,
+		base64.RawStdEncoding.EncodeToString(salt),
+		base64.RawStdEncoding.EncodeToString(key),
+	), nil
 }
 
-func VerifyPassword(password, saltHex, storedHashHex string) bool {
-	if password == "" || saltHex == "" || storedHashHex == "" {
+func (h *PBKDF2Hasher) Verify(password, encodedHash string) bool {
+	algorithm, iterations, salt, expected, ok := parsePasswordHash(encodedHash)
+	if !ok || algorithm != passwordAlgorithm || password == "" {
 		return false
 	}
 
-	saltBytes, err := hex.DecodeString(saltHex)
+	candidate, err := pbkdf2.Key(sha256.New, password, salt, iterations, len(expected))
 	if err != nil {
 		return false
 	}
 
-	storedHashBytes, err := hex.DecodeString(storedHashHex)
-	if err != nil {
-		return false
-	}
-
-	candidate := hashPasswordBytes([]byte(password), saltBytes)
-	if len(candidate) != len(storedHashBytes) {
-		return false
-	}
-
-	for i := range candidate {
-		if candidate[i] != storedHashBytes[i] {
-			return false
-		}
-	}
-	return true
+	return subtle.ConstantTimeCompare(candidate, expected) == 1
 }
 
-func hashPasswordBytes(password, salt []byte) []byte {
-	value := append([]byte{}, password...)
-	for i := 0; i < passwordIterations; i++ {
-		hash := sha256.Sum256(append(value, salt...))
-		value = hash[:]
+func parsePasswordHash(encoded string) (algorithm string, iterations int, salt, key []byte, ok bool) {
+	parts := strings.Split(encoded, "$")
+	if len(parts) != 4 {
+		return "", 0, nil, nil, false
 	}
-	return value
-}
 
-func GenerateToken() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
+	iterations, err := strconv.Atoi(parts[1])
+	if err != nil || iterations <= 0 {
+		return "", 0, nil, nil, false
 	}
-	return hex.EncodeToString(bytes), nil
-}
 
-func GenerateID() string {
-	id, err := GenerateToken()
-	if err != nil {
-		return time.Now().UTC().Format(time.RFC3339Nano)
+	salt, err = base64.RawStdEncoding.DecodeString(parts[2])
+	if err != nil || len(salt) < saltLength {
+		return "", 0, nil, nil, false
 	}
-	return id
+
+	key, err = base64.RawStdEncoding.DecodeString(parts[3])
+	if err != nil || len(key) == 0 {
+		return "", 0, nil, nil, false
+	}
+
+	return parts[0], iterations, salt, key, true
 }

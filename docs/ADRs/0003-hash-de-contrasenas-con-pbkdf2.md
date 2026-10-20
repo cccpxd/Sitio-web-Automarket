@@ -1,6 +1,6 @@
 # ADR-0003: Proteger las contraseñas con PBKDF2
 
-- **Estado:** Aceptado
+- **Estado:** Vigente con ajuste de ADR-0007 (formato `algoritmo$iteraciones$sal$hash`)
 - **Fecha:** 2026-09-27
 - **Autores:** Cristian Camilo Colorado; Juan Jose Patiño; Juan Manuel Ramos
 

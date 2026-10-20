@@ -1,6 +1,6 @@
 # ADR-0001: Guardar los datos en memoria y en archivos JSON
 
-- **Estado:** Aceptado
+- **Estado:** Reemplazado por ADR-0007 (persistencia en PostgreSQL)
 - **Fecha:** 2026-09-27
 - **Autores:** Cristian Camilo Colorado; Juan Jose Patiño; Juan Manuel Ramos
 

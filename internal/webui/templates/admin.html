@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{.title}}</title>
+    <title>{{.Title}}</title>
     <link rel="stylesheet" href="/static/css/style.css" />
   </head>
   <body>
@@ -12,20 +12,17 @@
         <div class="brand">AutoMarket</div>
         <nav>
           <a href="/dashboard">Dashboard</a>
-          <a href="/profile">Perfil</a>
-          {{if eq .user.Role "seller"}}<a href="/seller-panel">Vendedor</a>{{end}}
-          {{if eq .user.Role "admin"}}<a href="/admin-panel">Admin</a>{{end}}
+          <a href="/admin-panel">Administración</a>
         </nav>
         <a class="btn-primary" href="/logout">Cerrar sesión</a>
       </div>
     </header>
-
-    <main class="dashboard-main container">
+    <main class="container dashboard-main">
       <div class="welcome-card">
-        <p class="eyebrow">Bienvenido</p>
-        <h1>{{.user.Name}}</h1>
-        <p>Rol: <strong>{{.roleText}}</strong></p>
-        <p>Email: {{.user.Email}}</p>
+        <p class="eyebrow">Panel</p>
+        <h1>Administración</h1>
+        <p>Usuario autenticado: {{.User.Name}}</p>
+        <p>Rol: {{.User.Role}}</p>
       </div>
     </main>
   </body>

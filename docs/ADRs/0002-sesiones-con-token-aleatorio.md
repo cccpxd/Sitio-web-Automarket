@@ -1,6 +1,6 @@
 # ADR-0002: Sesiones con token aleatorio guardado en el servidor
 
-- **Estado:** Aceptado
+- **Estado:** Vigente con ajuste de ADR-0007 (cookie HttpOnly en lugar de `Authorization: Bearer`)
 - **Fecha:** 2026-09-27
 - **Autores:** Cristian Camilo Colorado; Juan Jose Patiño; Juan Manuel Ramos
 

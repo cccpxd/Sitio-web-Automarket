@@ -1,6 +1,6 @@
 # ADR-0005: Trazabilidad con `log/slog` a archivo
 
-- **Estado:** Aceptado
+- **Estado:** Reemplazado parcialmente por ADR-0007 (logs a stdout en Vercel)
 - **Fecha:** 2026-09-27
 - **Autores:** Cristian Camilo Colorado; Juan Jose Patiño; Juan Manuel Ramos
 

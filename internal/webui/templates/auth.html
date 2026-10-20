@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{.title}}</title>
+    <title>{{.Title}}</title>
     <link rel="stylesheet" href="/static/css/style.css" />
   </head>
   <body class="auth-page">
@@ -25,43 +25,43 @@
 
       <div class="auth-panel form-panel">
         <div class="tabs">
-          <a href="/login" class="tab {{if eq .activePage "login"}}active{{end}}">Iniciar sesión</a>
-          <a href="/register" class="tab {{if eq .activePage "register"}}active{{end}}">Registrar vendedor</a>
+          <a href="/login" class='tab {{if eq .ActivePage "login"}}active{{end}}'>Iniciar sesión</a>
+          <a href="/register" class='tab {{if eq .ActivePage "register"}}active{{end}}'>Registrar vendedor</a>
         </div>
 
-        {{if .errorMessage}}
-        <div class="alert error">{{.errorMessage}}</div>
+        {{if .ErrorMessage}}
+        <div class="alert error">{{.ErrorMessage}}</div>
         {{end}}
 
-        {{if .successMessage}}
-        <div class="alert success">{{.successMessage}}</div>
+        {{if .SuccessMessage}}
+        <div class="alert success">{{.SuccessMessage}}</div>
         {{end}}
 
-        {{if eq .activePage "login"}}
+        {{if eq .ActivePage "login"}}
         <form class="auth-form" method="POST" action="/login">
           <div class="field">
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" placeholder="correo@automarket.com" required />
+            <label for="login-email">Email</label>
+            <input id="login-email" name="email" type="email" placeholder="correo@automarket.com" required />
           </div>
           <div class="field">
-            <label for="password">Contraseña</label>
-            <input id="password" name="password" type="password" placeholder="••••••••" required />
+            <label for="login-password">Contraseña</label>
+            <input id="login-password" name="password" type="password" placeholder="••••••••" required />
           </div>
           <button type="submit" class="btn-primary full">Iniciar sesión</button>
         </form>
         {{else}}
         <form class="auth-form" method="POST" action="/register">
           <div class="field">
-            <label for="name">Nombre completo</label>
-            <input id="name" name="name" type="text" placeholder="Juan Pérez" required />
+            <label for="register-name">Nombre completo</label>
+            <input id="register-name" name="name" type="text" placeholder="Juan Pérez" required />
           </div>
           <div class="field">
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" placeholder="vendedor@automarket.com" required />
+            <label for="register-email">Email</label>
+            <input id="register-email" name="email" type="email" placeholder="vendedor@automarket.com" required />
           </div>
           <div class="field">
-            <label for="password">Contraseña</label>
-            <input id="password" name="password" type="password" placeholder="Mínimo 6 caracteres" required />
+            <label for="register-password">Contraseña</label>
+            <input id="register-password" name="password" type="password" placeholder="Mínimo 6 caracteres" required />
           </div>
           <button type="submit" class="btn-primary full">Registrar vendedor</button>
         </form>
