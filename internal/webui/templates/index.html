@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container nav">
+        <div class="brand">AutoMarket</div>
+        <nav>
+          <a href="#">Inicio</a>
+          <a href="#">Vehículos</a>
+          <a href="#">Ventas</a>
+          <a href="#">Contacto</a>
+        </nav>
+        <a class="btn-primary" href="/register">Publicar anuncio</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-content">
+          <div>
+            <p class="eyebrow">Encuentra tu próximo auto</p>
+            <h1>Autos usados con calidad y confianza</h1>
+            <p class="lead">
+              Explora vehículos verificados, financiamiento flexible y ofertas exclusivas.
+            </p>
+            <div class="hero-actions">
+              <a class="btn-primary" href="/login">Iniciar sesión</a>
+              <a class="btn-secondary" href="/register">Registrarse</a>
+            </div>
+          </div>
+          <div class="hero-card">
+            <div class="mini-card">
+              <span>Disponibles</span>
+              <strong>240+</strong>
+            </div>
+            <div class="mini-card accent">
+              <span>Calificación</span>
+              <strong>4.9/5</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="features container">
+        <div class="feature">
+          <h3>Financiamiento</h3>
+          <p>Opciones adaptadas a tu presupuesto.</p>
+        </div>
+        <div class="feature">
+          <h3>Verificación</h3>
+          <p>Autos revisados antes de la entrega.</p>
+        </div>
+        <div class="feature">
+          <h3>Entrega rápida</h3>
+          <p>Compra y retira en el menor tiempo posible.</p>
+        </div>
+      </section>
+
+      <section id="catalogo" class="container catalog">
+        <div class="section-title">
+          <p>Lo más destacado</p>
+          <h2>Vehículos recomendados</h2>
+        </div>
+
+        <div class="product-grid">
+          {{range .Products}}
+          <article class="product-card">
+            <div class="product-image">{{.Brand}}</div>
+            <div class="product-info">
+              <div class="product-header">
+                <h3>{{.Brand}} {{.Model}}</h3>
+                <span>{{.Year}}</span>
+              </div>
+              <p>{{.Description}}</p>
+              <div class="product-footer">
+                <strong>$ {{.Price}}</strong>
+                <a href="#">Ver más</a>
+              </div>
+            </div>
+          </article>
+          {{end}}
+        </div>
+      </section>
+    </main>
+
+    <footer id="contacto" class="footer">
+      <div class="container footer-content">
+        <div>
+          <h3>AutoMarket</h3>
+          <p>Tu confianza al volante.</p>
+        </div>
+        <div>
+          <p>contacto@automarket.com</p>
+          <p>+52 55 1234 5678</p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

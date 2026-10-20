@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body class="auth-page">
+    <div class="auth-shell">
+      <div class="auth-panel info-panel">
+        <div class="brand-block">
+          <span class="brand-mark">A</span>
+          <h1>AutoMarket</h1>
+        </div>
+        <p class="info-copy">
+          Gestiona tus ventas, conecta con compradores y administra el acceso del equipo con seguridad.
+        </p>
+        <ul class="feature-list">
+          <li>Registro rápido para vendedores</li>
+          <li>Inicio de sesión seguro</li>
+          <li>Control por roles</li>
+        </ul>
+      </div>
+
+      <div class="auth-panel form-panel">
+        <div class="tabs">
+          <a href="/login" class='tab {{if eq .ActivePage "login"}}active{{end}}'>Iniciar sesión</a>
+          <a href="/register" class='tab {{if eq .ActivePage "register"}}active{{end}}'>Registrar vendedor</a>
+        </div>
+
+        {{if .ErrorMessage}}
+        <div class="alert error">{{.ErrorMessage}}</div>
+        {{end}}
+
+        {{if .SuccessMessage}}
+        <div class="alert success">{{.SuccessMessage}}</div>
+        {{end}}
+
+        {{if eq .ActivePage "login"}}
+        <form class="auth-form" method="POST" action="/login">
+          <div class="field">
+            <label for="login-email">Email</label>
+            <input id="login-email" name="email" type="email" placeholder="correo@automarket.com" required />
+          </div>
+          <div class="field">
+            <label for="login-password">Contraseña</label>
+            <input id="login-password" name="password" type="password" placeholder="••••••••" required />
+          </div>
+          <button type="submit" class="btn-primary full">Iniciar sesión</button>
+        </form>
+        {{else}}
+        <form class="auth-form" method="POST" action="/register">
+          <div class="field">
+            <label for="register-name">Nombre completo</label>
+            <input id="register-name" name="name" type="text" placeholder="Juan Pérez" required />
+          </div>
+          <div class="field">
+            <label for="register-email">Email</label>
+            <input id="register-email" name="email" type="email" placeholder="vendedor@automarket.com" required />
+          </div>
+          <div class="field">
+            <label for="register-password">Contraseña</label>
+            <input id="register-password" name="password" type="password" placeholder="Mínimo 6 caracteres" required />
+          </div>
+          <button type="submit" class="btn-primary full">Registrar vendedor</button>
+        </form>
+        {{end}}
+      </div>
+    </div>
+  </body>
+</html>

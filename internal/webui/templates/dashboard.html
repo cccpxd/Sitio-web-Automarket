@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <header class="topbar dashboard-header">
+      <div class="container nav">
+        <div class="brand">AutoMarket</div>
+        <nav>
+          <a href="/dashboard">Dashboard</a>
+          <a href="/profile">Perfil</a>
+          {{if eq .User.Role "seller"}}<a href="/seller-panel">Vendedor</a>{{end}}
+          {{if eq .User.Role "admin"}}<a href="/admin-panel">Admin</a>{{end}}
+        </nav>
+        <a class="btn-primary" href="/logout">Cerrar sesión</a>
+      </div>
+    </header>
+
+    <main class="dashboard-main container">
+      <div class="welcome-card">
+        <p class="eyebrow">Bienvenido</p>
+        <h1>{{.User.Name}}</h1>
+        <p>Rol: <strong>{{.RoleText}}</strong></p>
+        <p>Email: {{.User.Email}}</p>
+      </div>
+    </main>
+  </body>
+</html>
