@@ -12,18 +12,75 @@
         <div class="brand">AutoMarket</div>
         <nav>
           <a href="/dashboard">Dashboard</a>
-          <a href="/admin-panel">Administración</a>
+          <a href="/admin-panel">Administracion</a>
         </nav>
-        <a class="btn-primary" href="/logout">Cerrar sesión</a>
+        <a class="btn-primary" href="/logout">Cerrar sesion</a>
       </div>
     </header>
     <main class="container dashboard-main">
       <div class="welcome-card">
         <p class="eyebrow">Panel</p>
-        <h1>Administración</h1>
+        <h1>Administracion</h1>
         <p>Usuario autenticado: {{.User.Name}}</p>
         <p>Rol: {{.User.Role}}</p>
       </div>
+
+      <section class="catalog">
+        <div class="section-title">
+          <p>Comunidad</p>
+          <h2>Vendedores registrados</h2>
+        </div>
+        <div class="product-grid">
+          {{range .Sellers}}
+          <article class="product-card">
+            <div class="product-info">
+              <div class="product-header">
+                <h3>{{.Name}}</h3>
+                <span>{{.Role}}</span>
+              </div>
+              <p>{{.Email}}</p>
+            </div>
+          </article>
+          {{else}}
+          <p>No hay vendedores registrados.</p>
+          {{end}}
+        </div>
+      </section>
+
+      <section class="catalog">
+        <div class="section-title">
+          <p>Moderacion</p>
+          <h2>Publicaciones</h2>
+        </div>
+        <div class="product-grid">
+          {{range .Cars}}
+          <article class="product-card">
+            <div class="product-image">{{.Brand}}</div>
+            <div class="product-info">
+              <div class="product-header">
+                <h3>{{.Brand}} {{.Model}}</h3>
+                <span>{{.Year}}</span>
+              </div>
+              <p>{{.Description}}</p>
+              <div class="product-footer">
+                <strong>$ {{.Price}}</strong>
+                {{if .Reported}}<span class="badge-report">Reportado</span>{{end}}
+              </div>
+              <div class="product-actions">
+                <form method="post" action="/admin/cars/{{.ID}}/report">
+                  <button type="submit" class="btn-secondary">Reportar</button>
+                </form>
+                <form method="post" action="/admin/cars/{{.ID}}/delete">
+                  <button type="submit" class="btn-danger">Eliminar</button>
+                </form>
+              </div>
+            </div>
+          </article>
+          {{else}}
+          <p>No hay publicaciones.</p>
+          {{end}}
+        </div>
+      </section>
     </main>
   </body>
 </html>

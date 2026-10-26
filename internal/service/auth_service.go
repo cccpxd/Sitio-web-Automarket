@@ -132,6 +132,25 @@ func (s *AuthService) Authenticate(ctx context.Context, rawToken string) (domain
 	return user, nil
 }
 
+// sellerLister is implemented by stores that can enumerate seller accounts.
+// It is optional so existing persistence fakes stay small.
+type sellerLister interface {
+	ListSellers(ctx context.Context) ([]domain.User, error)
+}
+
+// ListSellers returns all registered seller accounts for administration.
+func (s *AuthService) ListSellers(ctx context.Context) ([]domain.User, error) {
+	lister, ok := s.users.(sellerLister)
+	if !ok {
+		return nil, nil
+	}
+	sellers, err := lister.ListSellers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list sellers: %w", err)
+	}
+	return sellers, nil
+}
+
 // Logout invalidates the session associated with the raw token.
 func (s *AuthService) Logout(ctx context.Context, rawToken string) error {
 	if rawToken == "" {

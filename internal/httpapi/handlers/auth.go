@@ -13,6 +13,7 @@ import (
 
 type AuthHandler struct {
 	auth     httpapi.AuthService
+	admin    httpapi.AdminService
 	cars     httpapi.CarService
 	renderer httpapi.Renderer
 	logger   *slog.Logger
@@ -34,6 +35,10 @@ func NewAuthHandler(auth httpapi.AuthService, renderer httpapi.Renderer, logger 
 
 func (h *AuthHandler) SetCarService(cars httpapi.CarService) {
 	h.cars = cars
+}
+
+func (h *AuthHandler) SetAdminService(admin httpapi.AdminService) {
+	h.admin = admin
 }
 
 type registerPayload struct {
@@ -153,7 +158,28 @@ func (h *AuthHandler) AdminPanel(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-	renderHTML(c, h.renderer, h.logger, http.StatusOK, "admin.html", views.NewRolePage("Panel de administracion", user))
+
+	var sellers []domain.User
+	if h.admin != nil {
+		list, err := h.admin.ListSellers(c.Request.Context())
+		if err != nil {
+			h.logger.ErrorContext(c.Request.Context(), "list_sellers_failed", "error", err)
+		} else {
+			sellers = list
+		}
+	}
+
+	var cars []domain.Car
+	if h.cars != nil {
+		list, err := h.cars.ListCars(c.Request.Context())
+		if err != nil {
+			h.logger.ErrorContext(c.Request.Context(), "list_cars_failed", "error", err)
+		} else {
+			cars = list
+		}
+	}
+
+	renderHTML(c, h.renderer, h.logger, http.StatusOK, "admin.html", views.NewAdminPage(user, sellers, cars))
 }
 
 func (h *AuthHandler) SellerPanel(c *gin.Context) {
@@ -255,6 +281,32 @@ func (h *AuthHandler) CreateCar(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusFound, "/seller-panel")
+}
+
+func (h *AuthHandler) DeleteCar(c *gin.Context) {
+	if h.cars == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "servicio no disponible"})
+		return
+	}
+	if err := h.cars.DeleteCar(c.Request.Context(), c.Param("id")); err != nil {
+		h.logger.ErrorContext(c.Request.Context(), "delete_car_failed", "error", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "publicacion no encontrada"})
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin-panel")
+}
+
+func (h *AuthHandler) ReportCar(c *gin.Context) {
+	if h.cars == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "servicio no disponible"})
+		return
+	}
+	if err := h.cars.ReportCar(c.Request.Context(), c.Param("id")); err != nil {
+		h.logger.ErrorContext(c.Request.Context(), "report_car_failed", "error", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "publicacion no encontrada"})
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin-panel")
 }
 
 func (h *AuthHandler) setSessionCookie(c *gin.Context, token string) {

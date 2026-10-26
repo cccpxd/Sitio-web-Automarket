@@ -32,6 +32,13 @@ type AuthService interface {
 type CarService interface {
 	ListCars(ctx context.Context) ([]domain.Car, error)
 	CreateCar(ctx context.Context, sellerID string, input service.CreateCarInput) (domain.Car, error)
+	DeleteCar(ctx context.Context, id string) error
+	ReportCar(ctx context.Context, id string) error
+}
+
+// AdminService exposes administration queries.
+type AdminService interface {
+	ListSellers(ctx context.Context) ([]domain.User, error)
 }
 
 // CookieConfig groups the HTTP-only presentation of the session.

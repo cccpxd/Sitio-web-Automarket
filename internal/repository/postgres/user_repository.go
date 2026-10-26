@@ -49,6 +49,31 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (domain.
 	return user, nil
 }
 
+func (r *UserRepository) ListSellers(ctx context.Context) ([]domain.User, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, name, email, password_hash, role, created_at
+		FROM users
+		WHERE role = 'seller'
+		ORDER BY created_at DESC`)
+	if err != nil {
+		return nil, fmt.Errorf("postgres: list sellers: %w", err)
+	}
+	defer rows.Close()
+
+	var sellers []domain.User
+	for rows.Next() {
+		seller, err := scanUser(rows)
+		if err != nil {
+			return nil, fmt.Errorf("postgres: scan seller: %w", err)
+		}
+		sellers = append(sellers, seller)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("postgres: iterate sellers: %w", err)
+	}
+	return sellers, nil
+}
+
 type rowScanner interface {
 	Scan(dest ...any) error
 }

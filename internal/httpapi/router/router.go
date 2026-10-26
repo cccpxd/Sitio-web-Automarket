@@ -16,6 +16,7 @@ import (
 
 type Dependencies struct {
 	Auth        httpapi.AuthService
+	Admin       httpapi.AdminService
 	Cars        httpapi.CarService
 	Renderer    httpapi.Renderer
 	StaticFS    fs.FS
@@ -44,8 +45,10 @@ func New(deps Dependencies) (*gin.Engine, error) {
 
 	pageHandler := handlers.NewPageHandler(deps.Renderer, deps.Logger, deps.HealthCheck, deps.Cars)
 	authHandler := handlers.NewAuthHandler(deps.Auth, deps.Renderer, deps.Logger, deps.Cookie, deps.Cars)
+	authHandler.SetAdminService(deps.Admin)
 
 	engine.GET("/", pageHandler.Home)
+	engine.GET("/cars", pageHandler.Home)
 	engine.GET("/healthz", pageHandler.Health)
 	engine.GET("/login", authHandler.LoginPage)
 	engine.POST("/login", authHandler.Login)
@@ -68,6 +71,8 @@ func New(deps Dependencies) (*gin.Engine, error) {
 	admin.Use(middleware.RequireRole(deps.Auth, deps.Cookie.Name, deps.Logger, domain.RoleAdmin))
 	admin.GET("/admin-panel", authHandler.AdminPanel)
 	admin.GET("/users", authHandler.ListUsers)
+	admin.POST("/admin/cars/:id/delete", authHandler.DeleteCar)
+	admin.POST("/admin/cars/:id/report", authHandler.ReportCar)
 
 	return engine, nil
 }

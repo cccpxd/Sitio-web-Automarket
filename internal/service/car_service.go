@@ -11,6 +11,8 @@ import (
 type CarStore interface {
 	Create(ctx context.Context, car domain.Car) error
 	List(ctx context.Context) ([]domain.Car, error)
+	Delete(ctx context.Context, id string) error
+	Report(ctx context.Context, id string) error
 }
 
 // CreateCarInput is the application-level input for creating a car.
@@ -77,4 +79,12 @@ func (s *CarService) CreateCar(ctx context.Context, sellerID string, input Creat
 		return domain.Car{}, err
 	}
 	return car, nil
+}
+
+func (s *CarService) DeleteCar(ctx context.Context, id string) error {
+	return s.cars.Delete(ctx, id)
+}
+
+func (s *CarService) ReportCar(ctx context.Context, id string) error {
+	return s.cars.Report(ctx, id)
 }

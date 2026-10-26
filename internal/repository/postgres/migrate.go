@@ -32,9 +32,12 @@ var migrationStatements = []string{
 		year INTEGER NOT NULL,
 		description TEXT NOT NULL DEFAULT '',
 		price TEXT NOT NULL,
-		seller_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		seller_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+		reported BOOLEAN NOT NULL DEFAULT FALSE,
 		created_at TIMESTAMPTZ NOT NULL
 	)`,
+	`ALTER TABLE cars ALTER COLUMN seller_id DROP NOT NULL`,
+	`ALTER TABLE cars ADD COLUMN IF NOT EXISTS reported BOOLEAN NOT NULL DEFAULT FALSE`,
 }
 
 // Migrate applies the idempotent schema. The advisory lock prevents concurrent

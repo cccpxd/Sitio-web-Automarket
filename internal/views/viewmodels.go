@@ -13,11 +13,13 @@ type HomePage struct {
 }
 
 type Product struct {
+	ID          string
 	Brand       string
 	Model       string
 	Year        int
 	Description string
 	Price       string
+	Reported    bool
 }
 
 // AuthPage is the view model shared by login and registration screens.
@@ -45,9 +47,10 @@ type DashboardPage struct {
 }
 
 type RolePage struct {
-	Title string
-	User  UserView
-	Cars  []Product
+	Title   string
+	User    UserView
+	Cars    []Product
+	Sellers []UserView
 }
 
 func NewUserView(user domain.User) UserView {
@@ -78,13 +81,7 @@ func NewRolePage(title string, user domain.User) RolePage {
 func NewRolePageWithCars(title string, user domain.User, cars []domain.Car) RolePage {
 	products := make([]Product, 0, len(cars))
 	for _, car := range cars {
-		products = append(products, Product{
-			Brand:       car.Brand,
-			Model:       car.Model,
-			Year:        car.Year,
-			Description: car.Description,
-			Price:       car.Price,
-		})
+		products = append(products, newProduct(car))
 	}
 	return RolePage{
 		Title: title,
@@ -93,18 +90,41 @@ func NewRolePageWithCars(title string, user domain.User, cars []domain.Car) Role
 	}
 }
 
+func NewAdminPage(user domain.User, sellers []domain.User, cars []domain.Car) RolePage {
+	products := make([]Product, 0, len(cars))
+	for _, car := range cars {
+		products = append(products, newProduct(car))
+	}
+	sellerViews := make([]UserView, 0, len(sellers))
+	for _, seller := range sellers {
+		sellerViews = append(sellerViews, NewUserView(seller))
+	}
+	return RolePage{
+		Title:   "Panel de administracion",
+		User:    NewUserView(user),
+		Cars:    products,
+		Sellers: sellerViews,
+	}
+}
+
 func NewHomePage(cars []domain.Car) HomePage {
 	products := make([]Product, 0, len(cars))
 	for _, car := range cars {
-		products = append(products, Product{
-			Brand:       car.Brand,
-			Model:       car.Model,
-			Year:        car.Year,
-			Description: car.Description,
-			Price:       car.Price,
-		})
+		products = append(products, newProduct(car))
 	}
 	return HomePage{Title: "Automarket", Products: products}
+}
+
+func newProduct(car domain.Car) Product {
+	return Product{
+		ID:          car.ID,
+		Brand:       car.Brand,
+		Model:       car.Model,
+		Year:        car.Year,
+		Description: car.Description,
+		Price:       car.Price,
+		Reported:    car.Reported,
+	}
 }
 
 func RoleLabel(role domain.Role) string {

@@ -11,6 +11,7 @@ type Car struct {
 	Description string
 	Price       string
 	SellerID    string
+	Reported    bool
 	CreatedAt   time.Time
 }
 
