@@ -16,6 +16,7 @@ import (
 
 type Dependencies struct {
 	Auth        httpapi.AuthService
+	Cars        httpapi.CarService
 	Renderer    httpapi.Renderer
 	StaticFS    fs.FS
 	Logger      *slog.Logger
@@ -41,8 +42,8 @@ func New(deps Dependencies) (*gin.Engine, error) {
 	)
 	engine.StaticFS("/static", http.FS(deps.StaticFS))
 
-	pageHandler := handlers.NewPageHandler(deps.Renderer, deps.Logger, deps.HealthCheck)
-	authHandler := handlers.NewAuthHandler(deps.Auth, deps.Renderer, deps.Logger, deps.Cookie)
+	pageHandler := handlers.NewPageHandler(deps.Renderer, deps.Logger, deps.HealthCheck, deps.Cars)
+	authHandler := handlers.NewAuthHandler(deps.Auth, deps.Renderer, deps.Logger, deps.Cookie, deps.Cars)
 
 	engine.GET("/", pageHandler.Home)
 	engine.GET("/healthz", pageHandler.Health)

@@ -55,6 +55,11 @@ func New(ctx context.Context, cfg config.Config, logger *slog.Logger) (*App, err
 		return nil, err
 	}
 
+	carService, err := buildCarService(db)
+	if err != nil {
+		return nil, err
+	}
+
 	if cfg.AdminEmail != "" {
 		created, err := authService.EnsureAdmin(ctx, cfg.AdminName, cfg.AdminEmail, cfg.AdminPassword)
 		if err != nil {
@@ -76,6 +81,7 @@ func New(ctx context.Context, cfg config.Config, logger *slog.Logger) (*App, err
 
 	engine, err := router.New(router.Dependencies{
 		Auth:     authService,
+		Cars:     carService,
 		Renderer: renderer,
 		StaticFS: staticFS,
 		Logger:   logger,
@@ -110,6 +116,19 @@ func migrate(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 	return nil
+}
+
+func buildCarService(db *sql.DB) (*service.CarService, error) {
+	idGen := security.NewIDGenerator()
+	carService, err := service.NewCarService(service.CarServiceDeps{
+		Cars:  postgres.NewCarRepository(db),
+		IDs:   idGen,
+		Clock: clock.New(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("build car service: %w", err)
+	}
+	return carService, nil
 }
 
 func buildAuthService(db *sql.DB, cfg config.Config) (*service.AuthService, error) {

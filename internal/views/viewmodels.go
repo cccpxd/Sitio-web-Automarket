@@ -47,6 +47,7 @@ type DashboardPage struct {
 type RolePage struct {
 	Title string
 	User  UserView
+	Cars  []Product
 }
 
 func NewUserView(user domain.User) UserView {
@@ -72,6 +73,38 @@ func NewRolePage(title string, user domain.User) RolePage {
 		Title: title,
 		User:  NewUserView(user),
 	}
+}
+
+func NewRolePageWithCars(title string, user domain.User, cars []domain.Car) RolePage {
+	products := make([]Product, 0, len(cars))
+	for _, car := range cars {
+		products = append(products, Product{
+			Brand:       car.Brand,
+			Model:       car.Model,
+			Year:        car.Year,
+			Description: car.Description,
+			Price:       car.Price,
+		})
+	}
+	return RolePage{
+		Title: title,
+		User:  NewUserView(user),
+		Cars:  products,
+	}
+}
+
+func NewHomePage(cars []domain.Car) HomePage {
+	products := make([]Product, 0, len(cars))
+	for _, car := range cars {
+		products = append(products, Product{
+			Brand:       car.Brand,
+			Model:       car.Model,
+			Year:        car.Year,
+			Description: car.Description,
+			Price:       car.Price,
+		})
+	}
+	return HomePage{Title: "Automarket", Products: products}
 }
 
 func RoleLabel(role domain.Role) string {

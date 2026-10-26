@@ -25,6 +25,16 @@ var migrationStatements = []string{
 	)`,
 	`CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions (user_id)`,
 	`CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions (expires_at)`,
+	`CREATE TABLE IF NOT EXISTS cars (
+		id TEXT PRIMARY KEY,
+		brand TEXT NOT NULL,
+		model TEXT NOT NULL,
+		year INTEGER NOT NULL,
+		description TEXT NOT NULL DEFAULT '',
+		price TEXT NOT NULL,
+		seller_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		created_at TIMESTAMPTZ NOT NULL
+	)`,
 }
 
 // Migrate applies the idempotent schema. The advisory lock prevents concurrent

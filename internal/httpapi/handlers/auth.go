@@ -13,18 +13,27 @@ import (
 
 type AuthHandler struct {
 	auth     httpapi.AuthService
+	cars     httpapi.CarService
 	renderer httpapi.Renderer
 	logger   *slog.Logger
 	cookie   httpapi.CookieConfig
 }
 
-func NewAuthHandler(auth httpapi.AuthService, renderer httpapi.Renderer, logger *slog.Logger, cookie httpapi.CookieConfig) *AuthHandler {
-	return &AuthHandler{
+func NewAuthHandler(auth httpapi.AuthService, renderer httpapi.Renderer, logger *slog.Logger, cookie httpapi.CookieConfig, cars ...httpapi.CarService) *AuthHandler {
+	h := &AuthHandler{
 		auth:     auth,
 		renderer: renderer,
 		logger:   logger,
 		cookie:   cookie,
 	}
+	if len(cars) > 0 {
+		h.cars = cars[0]
+	}
+	return h
+}
+
+func (h *AuthHandler) SetCarService(cars httpapi.CarService) {
+	h.cars = cars
 }
 
 type registerPayload struct {
@@ -65,7 +74,7 @@ func (h *AuthHandler) RegisterSeller(c *gin.Context) {
 	h.renderAuthPage(c, http.StatusCreated, views.AuthPage{
 		Title:          "Registro exitoso",
 		ActivePage:     "login",
-		SuccessMessage: "Vendedor registrado correctamente. Ahora puedes iniciar sesión.",
+		SuccessMessage: "Vendedor registrado correctamente. Ahora puedes iniciar sesion.",
 	})
 }
 
@@ -78,9 +87,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var payload loginPayload
 	if err := c.ShouldBind(&payload); err != nil {
 		h.renderAuthPage(c, http.StatusBadRequest, views.AuthPage{
-			Title:        "Iniciar sesión",
+			Title:        "Iniciar sesion",
 			ActivePage:   "login",
-			ErrorMessage: "Email y contraseña requeridos.",
+			ErrorMessage: "Email y contrasena requeridos.",
 		})
 		return
 	}
@@ -92,7 +101,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			h.logger.ErrorContext(c.Request.Context(), "login_failed", "error", err)
 		}
 		h.renderAuthPage(c, presentation.Status, views.AuthPage{
-			Title:        "Iniciar sesión",
+			Title:        "Iniciar sesion",
 			ActivePage:   "login",
 			ErrorMessage: presentation.Message,
 		})
@@ -117,7 +126,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 func (h *AuthHandler) LoginPage(c *gin.Context) {
 	h.renderAuthPage(c, http.StatusOK, views.AuthPage{
-		Title:      "Iniciar sesión",
+		Title:      "Iniciar sesion",
 		ActivePage: "login",
 	})
 }
@@ -144,7 +153,7 @@ func (h *AuthHandler) AdminPanel(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-	renderHTML(c, h.renderer, h.logger, http.StatusOK, "admin.html", views.NewRolePage("Panel de administración", user))
+	renderHTML(c, h.renderer, h.logger, http.StatusOK, "admin.html", views.NewRolePage("Panel de administracion", user))
 }
 
 func (h *AuthHandler) SellerPanel(c *gin.Context) {
@@ -153,7 +162,14 @@ func (h *AuthHandler) SellerPanel(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-	renderHTML(c, h.renderer, h.logger, http.StatusOK, "seller.html", views.NewRolePage("Panel del vendedor", user))
+	page := views.NewRolePage("Panel del vendedor", user)
+	if h.cars != nil {
+		cars, err := h.cars.ListCars(c.Request.Context())
+		if err == nil {
+			page = views.NewRolePageWithCars("Panel del vendedor", user, cars)
+		}
+	}
+	renderHTML(c, h.renderer, h.logger, http.StatusOK, "seller.html", page)
 }
 
 type profileResponse struct {
@@ -198,17 +214,47 @@ func (h *AuthHandler) ListUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, messageResponse{Message: "lista de usuarios", Role: user.Role})
 }
 
+type carPayload struct {
+	Brand       string `form:"brand" json:"brand" binding:"required"`
+	Model       string `form:"model" json:"model" binding:"required"`
+	Year        int    `form:"year" json:"year" binding:"required"`
+	Description string `form:"description" json:"description"`
+	Price       string `form:"price" json:"price" binding:"required"`
+}
+
 func (h *AuthHandler) CreateCar(c *gin.Context) {
 	user, ok := httpapi.CurrentUser(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "no autorizado"})
 		return
 	}
-	c.JSON(http.StatusOK, messageResponse{Message: "vehículo creado", Role: user.Role})
-}
 
-func (h *AuthHandler) renderAuthPage(c *gin.Context, status int, page views.AuthPage) {
-	renderHTML(c, h.renderer, h.logger, status, "auth.html", page)
+	var payload carPayload
+	if err := c.ShouldBind(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "datos invalidos"})
+		return
+	}
+
+	if h.cars != nil {
+		_, err := h.cars.CreateCar(c.Request.Context(), user.ID, service.CreateCarInput{
+			Brand:       payload.Brand,
+			Model:       payload.Model,
+			Year:        payload.Year,
+			Description: payload.Description,
+			Price:       payload.Price,
+		})
+		if err != nil {
+			h.logger.ErrorContext(c.Request.Context(), "create_car_failed", "error", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "no se pudo crear el vehiculo"})
+			return
+		}
+	}
+
+	if c.GetHeader("Accept") == "application/json" {
+		c.JSON(http.StatusCreated, messageResponse{Message: "vehiculo creado", Role: user.Role})
+		return
+	}
+	c.Redirect(http.StatusFound, "/seller-panel")
 }
 
 func (h *AuthHandler) setSessionCookie(c *gin.Context, token string) {
@@ -219,4 +265,8 @@ func (h *AuthHandler) setSessionCookie(c *gin.Context, token string) {
 func (h *AuthHandler) clearSessionCookie(c *gin.Context) {
 	c.SetSameSite(h.cookie.SameSite)
 	c.SetCookie(h.cookie.Name, "", -1, "/", "", h.cookie.Secure, true)
+}
+
+func (h *AuthHandler) renderAuthPage(c *gin.Context, status int, page views.AuthPage) {
+	renderHTML(c, h.renderer, h.logger, status, "auth.html", page)
 }

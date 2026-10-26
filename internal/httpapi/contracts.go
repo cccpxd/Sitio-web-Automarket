@@ -28,6 +28,12 @@ type AuthService interface {
 	Logout(ctx context.Context, rawToken string) error
 }
 
+// CarService is the application port consumed by HTTP handlers.
+type CarService interface {
+	ListCars(ctx context.Context) ([]domain.Car, error)
+	CreateCar(ctx context.Context, sellerID string, input service.CreateCarInput) (domain.Car, error)
+}
+
 // CookieConfig groups the HTTP-only presentation of the session.
 type CookieConfig struct {
 	Name     string

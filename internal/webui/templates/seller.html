@@ -14,7 +14,7 @@
           <a href="/dashboard">Dashboard</a>
           <a href="/seller-panel">Vendedor</a>
         </nav>
-        <a class="btn-primary" href="/logout">Cerrar sesión</a>
+        <a class="btn-primary" href="/logout">Cerrar sesion</a>
       </div>
     </header>
     <main class="container dashboard-main">
@@ -24,6 +24,45 @@
         <p>Usuario: {{.User.Name}}</p>
         <p>Rol: {{.User.Role}}</p>
       </div>
+
+      <section class="catalog">
+        <div class="section-title">
+          <p>Tus vehiculos</p>
+          <h2>Agregar carro</h2>
+        </div>
+        <form method="post" action="/cars" class="feature">
+          <input name="brand" placeholder="Marca" required />
+          <input name="model" placeholder="Modelo" required />
+          <input name="year" type="number" placeholder="Ano" required />
+          <input name="price" placeholder="Precio" required />
+          <input name="description" placeholder="Descripcion" />
+          <button type="submit">Agregar carro</button>
+        </form>
+      </section>
+
+      <section class="catalog">
+        <div class="section-title">
+          <p>Catalogo</p>
+          <h2>Vehiculos en venta</h2>
+        </div>
+        <div class="product-grid">
+          {{range .Cars}}
+          <article class="product-card">
+            <div class="product-image">{{.Brand}}</div>
+            <div class="product-info">
+              <div class="product-header">
+                <h3>{{.Brand}} {{.Model}}</h3>
+                <span>{{.Year}}</span>
+              </div>
+              <p>{{.Description}}</p>
+              <div class="product-footer">
+                <strong>$ {{.Price}}</strong>
+              </div>
+            </div>
+          </article>
+          {{end}}
+        </div>
+      </section>
     </main>
   </body>
 </html>
