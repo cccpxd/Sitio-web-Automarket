@@ -1,0 +1,91 @@
+{{define "head"}}
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{.Title}} · AutoMarket</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+{{end}}
+
+{{define "navbar"}}
+<header class="topbar">
+  <div class="container nav">
+    <a class="brand" href="/">AutoMarket</a>
+    <nav aria-label="Navegación principal">
+      {{if eq .ActivePage "catalog"}}<a href="/cars" class="active">Catálogo</a>{{else}}<a href="/cars">Catálogo</a>{{end}}
+      {{if .User}}
+        {{if eq .User.Role "seller"}}
+          {{if eq .ActivePage "sales"}}<a href="/seller/ventas" class="active">Ventas</a>{{else}}<a href="/seller/ventas">Ventas</a>{{end}}
+          {{if eq .ActivePage "publish"}}<a href="/seller/publicar" class="active">Publicar</a>{{else}}<a href="/seller/publicar">Publicar</a>{{end}}
+        {{end}}
+        {{if eq .ActivePage "messages"}}<a href="/mensajes" class="active">Mensajes</a>{{else}}<a href="/mensajes">Mensajes</a>{{end}}
+        {{if eq .User.Role "admin"}}{{if eq .ActivePage "admin"}}<a href="/admin/moderacion" class="active">Moderación</a>{{else}}<a href="/admin/moderacion">Moderación</a>{{end}}{{end}}
+        <a href="/dashboard">Mi cuenta</a>
+        <form method="post" action="/logout" class="inline-form">
+          {{template "csrf" .}}
+          <button type="submit" class="btn btn-ghost">Cerrar sesión</button>
+        </form>
+      {{else}}
+        <a href="/login">Iniciar sesión</a>
+        <a class="btn btn-primary" href="/register">Registrarse</a>
+      {{end}}
+    </nav>
+  </div>
+</header>
+{{end}}
+
+{{define "flash"}}
+{{if .ErrorMessage}}<div class="alert alert-error" role="alert">{{.ErrorMessage}}</div>{{end}}
+{{if .Flash}}<div class="alert alert-success" role="status">{{.Flash}}</div>{{end}}
+{{end}}
+
+{{define "csrf"}}<input type="hidden" name="_csrf" value="{{.CSRF}}" />{{end}}
+
+{{define "footer"}}
+<footer class="footer">
+  <div class="container footer-content">
+    <div>
+      <strong>AutoMarket</strong>
+      <p>Compra y venta de vehículos entre personas.</p>
+    </div>
+    <p class="muted">Publica con datos reales. Modera con trazabilidad.</p>
+  </div>
+</footer>
+</body>
+</html>
+{{end}}
+
+{{define "empty-catalog"}}
+<section class="empty-state">
+  <h2>Todavía no hay vehículos publicados</h2>
+  <p>Cuando un vendedor publique un vehículo aparecerá aquí. No mostramos anuncios de ejemplo.</p>
+  {{if .User}}{{if eq .User.Role "seller"}}<a class="btn btn-primary" href="/seller/publicar">Publicar el primer vehículo</a>{{end}}{{end}}
+</section>
+{{end}}
+
+{{define "no-results"}}
+<section class="empty-state">
+  <h2>No encontramos vehículos con esos criterios</h2>
+  <p>Prueba con otra marca, modelo, año o rango de precio.</p>
+  <a class="btn btn-secondary" href="/cars">Limpiar filtros</a>
+</section>
+{{end}}
+
+{{define "car-card"}}
+<article class="car-card">
+  <a class="car-card-media" href="/cars/{{.ID}}">
+    {{if .CoverID}}<img src="/photos/{{.CoverID}}" alt="{{.Title}} {{.Year}}" loading="lazy" />{{else}}<span class="car-card-placeholder">Sin fotografía</span>{{end}}
+  </a>
+  <div class="car-card-body">
+    <div class="car-card-heading">
+      <h3><a href="/cars/{{.ID}}">{{.Title}}</a></h3>
+      <span class="year">{{.Year}}</span>
+    </div>
+    <p class="car-price">{{.Price}}</p>
+    <p class="car-summary">{{.Description}}</p>
+  </div>
+</article>
+{{end}}
