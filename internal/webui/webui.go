@@ -8,7 +8,7 @@ import (
 	"io/fs"
 )
 
-//go:embed templates/*.html
+//go:embed templates/*
 var templateFiles embed.FS
 
 //go:embed static
@@ -21,7 +21,7 @@ type Renderer struct {
 }
 
 func NewRenderer() (*Renderer, error) {
-	templates, err := template.ParseFS(templateFiles, "templates/*.html")
+	templates, err := template.ParseFS(templateFiles, "templates/*")
 	if err != nil {
 		return nil, fmt.Errorf("parse embedded templates: %w", err)
 	}

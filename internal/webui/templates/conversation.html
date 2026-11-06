@@ -22,7 +22,7 @@
 
   <div class="message-thread">
     {{range .Conversation.Messages}}
-      <article class="message {{if .Mine}}message-mine{{end}}">
+      <article class="{{.Class}}">
         <header>
           <strong>{{.SenderName}}</strong>
           <time datetime="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">{{.CreatedAt.Format "02/01/2006 15:04"}}</time>

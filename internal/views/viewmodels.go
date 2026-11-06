@@ -197,6 +197,7 @@ type MessageView struct {
 	SenderID   string
 	SenderName string
 	Body       string
+	Class      string
 	CreatedAt  time.Time
 	ReadAt     *time.Time
 	Mine       bool
@@ -359,12 +360,20 @@ func NewConversationView(conversation domain.Conversation, viewerID string) Conv
 			SenderID:   message.SenderID,
 			SenderName: message.SenderName,
 			Body:       message.Body,
+			Class:      messageClass(message.SenderID == viewerID),
 			CreatedAt:  message.CreatedAt,
 			ReadAt:     message.ReadAt,
 			Mine:       message.SenderID == viewerID,
 		})
 	}
 	return view
+}
+
+func messageClass(mine bool) string {
+	if mine {
+		return "message message-mine"
+	}
+	return "message"
 }
 
 // NewCatalogPage builds the catalog page including pagination links.

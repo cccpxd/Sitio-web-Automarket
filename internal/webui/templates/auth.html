@@ -13,8 +13,8 @@
 
     <section class="auth-panel form-panel">
       <div class="tabs">
-        <a href="/login{{if .Next}}?next={{.Next}}{{end}}" class="tab {{if eq .ActivePage "login"}}active{{end}}">Iniciar sesión</a>
-        <a href="/register{{if .Next}}?next={{.Next}}{{end}}" class="tab {{if eq .ActivePage "register"}}active{{end}}">Registrarse</a>
+        {{if eq .ActivePage "login"}}<a href="/login{{if .Next}}?next={{.Next}}{{end}}" class="tab active">Iniciar sesión</a>{{else}}<a href="/login{{if .Next}}?next={{.Next}}{{end}}" class="tab">Iniciar sesión</a>{{end}}
+        {{if eq .ActivePage "register"}}<a href="/register{{if .Next}}?next={{.Next}}{{end}}" class="tab active">Registrarse</a>{{else}}<a href="/register{{if .Next}}?next={{.Next}}{{end}}" class="tab">Registrarse</a>{{end}}
       </div>
 
       {{if .SuccessMessage}}<div class="alert alert-success" role="status">{{.SuccessMessage}}</div>{{end}}
