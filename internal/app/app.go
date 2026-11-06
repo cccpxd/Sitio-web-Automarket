@@ -55,7 +55,7 @@ func New(ctx context.Context, cfg config.Config, logger *slog.Logger) (*App, err
 		return nil, err
 	}
 
-	carService, err := buildCarService(db)
+	services, err := buildMarketplaceServices(db)
 	if err != nil {
 		return nil, err
 	}
@@ -79,22 +79,28 @@ func New(ctx context.Context, cfg config.Config, logger *slog.Logger) (*App, err
 		return nil, err
 	}
 
-	if err := seedCars(ctx, carService); err != nil {
-		return nil, fmt.Errorf("seed cars: %w", err)
-	}
-
 	engine, err := router.New(router.Dependencies{
-		Auth:     authService,
-		Admin:    authService,
-		Cars:     carService,
-		Renderer: renderer,
-		StaticFS: staticFS,
-		Logger:   logger,
+		Auth:       authService,
+		Admin:      authService,
+		Catalog:    services.catalog,
+		Publishing: services.publishing,
+		Photos:     services.photos,
+		Messages:   services.messaging,
+		Moderation: services.moderation,
+		Renderer:   renderer,
+		StaticFS:   staticFS,
+		Logger:     logger,
 		Cookie: httpapi.CookieConfig{
 			Name:     cfg.CookieName,
 			Secure:   cfg.CookieSecure,
 			SameSite: http.SameSiteLaxMode,
 			TTL:      cfg.SessionTTL,
+		},
+		CSRF: httpapi.CSRFConfig{
+			CookieName: "csrf_token",
+			Secure:     cfg.CookieSecure,
+			SameSite:   http.SameSiteLaxMode,
+			TTL:        cfg.SessionTTL,
 		},
 		HealthCheck: func(ctx context.Context) error {
 			pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
@@ -113,6 +119,64 @@ func New(ctx context.Context, cfg config.Config, logger *slog.Logger) (*App, err
 	}, nil
 }
 
+type marketplaceServices struct {
+	catalog    *service.CatalogService
+	publishing *service.PublishingService
+	photos     *service.PhotoService
+	messaging  *service.MessagingService
+	moderation *service.ModerationService
+}
+
+func buildMarketplaceServices(db *sql.DB) (marketplaceServices, error) {
+	carRepository := postgres.NewCarRepository(db)
+	ids := security.NewIDGenerator()
+	clockPort := clock.New()
+
+	catalog, err := service.NewCatalogService(carRepository)
+	if err != nil {
+		return marketplaceServices{}, fmt.Errorf("build catalog service: %w", err)
+	}
+	publishing, err := service.NewPublishingService(service.PublishingServiceDeps{
+		Cars:   carRepository,
+		Reader: carRepository,
+		Photos: service.NewImageProcessor(),
+		IDs:    ids,
+		Clock:  clockPort,
+	})
+	if err != nil {
+		return marketplaceServices{}, fmt.Errorf("build publishing service: %w", err)
+	}
+	photos, err := service.NewPhotoService(postgres.NewPhotoRepository(db))
+	if err != nil {
+		return marketplaceServices{}, fmt.Errorf("build photo service: %w", err)
+	}
+	messaging, err := service.NewMessagingService(service.MessagingServiceDeps{
+		Store: postgres.NewConversationRepository(db),
+		Cars:  carRepository,
+		IDs:   ids,
+		Clock: clockPort,
+	})
+	if err != nil {
+		return marketplaceServices{}, fmt.Errorf("build messaging service: %w", err)
+	}
+	moderation, err := service.NewModerationService(service.ModerationServiceDeps{
+		Store: postgres.NewModerationRepository(db),
+		IDs:   ids,
+		Clock: clockPort,
+	})
+	if err != nil {
+		return marketplaceServices{}, fmt.Errorf("build moderation service: %w", err)
+	}
+
+	return marketplaceServices{
+		catalog:    catalog,
+		publishing: publishing,
+		photos:     photos,
+		messaging:  messaging,
+		moderation: moderation,
+	}, nil
+}
+
 func migrate(ctx context.Context, db *sql.DB) error {
 	migrationCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -121,45 +185,6 @@ func migrate(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 	return nil
-}
-
-func seedCars(ctx context.Context, cars *service.CarService) error {
-	existing, err := cars.ListCars(ctx)
-	if err != nil {
-		return err
-	}
-	if len(existing) > 0 {
-		return nil
-	}
-
-	demo := []service.CreateCarInput{
-		{Brand: "Toyota", Model: "Corolla", Year: 2020, Description: "Sedan confiable, un solo dueno, mantenimiento al dia.", Price: "18,500"},
-		{Brand: "Honda", Model: "Civic", Year: 2019, Description: "Excelente rendimiento de combustible y equipo completo.", Price: "17,200"},
-		{Brand: "Mazda", Model: "CX-5", Year: 2021, Description: "SUV familiar con camara de reversa y sensores.", Price: "24,900"},
-		{Brand: "Nissan", Model: "Versa", Year: 2018, Description: "Auto economico ideal para la ciudad.", Price: "12,800"},
-		{Brand: "Ford", Model: "Ranger", Year: 2022, Description: "Pickup 4x4 lista para trabajo y aventura.", Price: "32,500"},
-		{Brand: "Chevrolet", Model: "Spark", Year: 2017, Description: "Compacto practico, bajo consumo y facil de estacionar.", Price: "9,900"},
-	}
-
-	for _, input := range demo {
-		if _, err := cars.CreateCar(ctx, "", input); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func buildCarService(db *sql.DB) (*service.CarService, error) {
-	idGen := security.NewIDGenerator()
-	carService, err := service.NewCarService(service.CarServiceDeps{
-		Cars:  postgres.NewCarRepository(db),
-		IDs:   idGen,
-		Clock: clock.New(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("build car service: %w", err)
-	}
-	return carService, nil
 }
 
 func buildAuthService(db *sql.DB, cfg config.Config) (*service.AuthService, error) {

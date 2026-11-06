@@ -1,0 +1,47 @@
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  <a class="back-link" href="/mensajes">← Volver a mensajes</a>
+  <div class="conversation-header">
+    <div>
+      <p class="eyebrow">Conversación</p>
+      <h1>{{.Conversation.CarTitle}} {{.Conversation.CarYear}}</h1>
+      <p class="muted">Con {{.Conversation.OtherName}}</p>
+    </div>
+    {{if .Conversation.CarAvailable}}<a class="btn btn-secondary" href="/cars/{{.Conversation.CarID}}">Ver publicación</a>{{end}}
+  </div>
+
+  {{if not .Conversation.CarAvailable}}
+    <div class="alert alert-warning" role="status">La publicación ya no está activa. El historial se conserva, pero no se puede iniciar un contacto nuevo.</div>
+  {{end}}
+  {{if .ReadOnly}}
+    <div class="alert alert-info" role="status">Vista de moderación: puedes leer la conversación, pero no responder.</div>
+  {{end}}
+  {{template "flash" .}}
+  {{if .Error}}<div class="alert alert-error" role="alert">{{.Error}}</div>{{end}}
+
+  <div class="message-thread">
+    {{range .Conversation.Messages}}
+      <article class="message {{if .Mine}}message-mine{{end}}">
+        <header>
+          <strong>{{.SenderName}}</strong>
+          <time datetime="{{.CreatedAt.Format "2006-01-02T15:04:05Z07:00"}}">{{.CreatedAt.Format "02/01/2006 15:04"}}</time>
+        </header>
+        <p>{{.Body}}</p>
+        {{if .ReadAt}}<span class="message-read">Leído</span>{{end}}
+      </article>
+    {{end}}
+  </div>
+
+  {{if not .ReadOnly}}
+    <form class="form-card reply-form" method="post" action="/mensajes/{{.Conversation.ID}}">
+      {{template "csrf" .}}
+      <div class="field">
+        <label for="message">Responder</label>
+        <textarea id="message" name="message" rows="3" maxlength="1000" required></textarea>
+      </div>
+      <button class="btn btn-primary" type="submit">Enviar mensaje</button>
+    </form>
+  {{end}}
+</main>
+{{template "footer" .}}

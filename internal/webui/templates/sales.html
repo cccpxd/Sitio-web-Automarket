@@ -1,0 +1,92 @@
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Ventas</p>
+      <h1>Publicaciones y catálogo</h1>
+      <p class="muted">El catálogo de Ventas usa las mismas publicaciones activas que ve el público.</p>
+    </div>
+    <a class="btn btn-primary" href="/seller/publicar">Publicar vehículo</a>
+  </div>
+
+  {{template "flash" .}}
+
+  <form class="filters filters-compact" method="get" action="/seller/ventas" role="search">
+    <div class="field">
+      <label for="q">Buscar en el catálogo</label>
+      <input id="q" name="q" type="search" value="{{.Query}}" placeholder="Marca, modelo, año o descripción" />
+    </div>
+    <div class="field field-small">
+      <label for="year">Año</label>
+      <input id="year" name="year" type="number" inputmode="numeric" value="{{.Year}}" placeholder="2013" />
+    </div>
+    <div class="field field-small">
+      <label for="min">Precio mínimo (COP)</label>
+      <input id="min" name="min" type="text" inputmode="numeric" value="{{.MinPrice}}" placeholder="20.000.000" />
+    </div>
+    <div class="field field-small">
+      <label for="max">Precio máximo (COP)</label>
+      <input id="max" name="max" type="text" inputmode="numeric" value="{{.MaxPrice}}" placeholder="80.000.000" />
+    </div>
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-primary">Buscar</button>
+      <a class="btn btn-secondary" href="/seller/ventas">Limpiar</a>
+    </div>
+  </form>
+
+  <section class="section-block">
+    <h2>Mis publicaciones</h2>
+    {{if .Mine}}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Vehículo</th><th>Año</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr>
+          </thead>
+          <tbody>
+            {{range .Mine}}
+              <tr>
+                <td>
+                  {{if eq .Status "active"}}<a href="{{.PublicURL}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}
+                </td>
+                <td>{{.Year}}</td>
+                <td>{{.Price}}</td>
+                <td><span class="badge badge-{{.Status}}">{{.StatusLabel}}</span></td>
+                <td class="table-actions">
+                  {{if .CanEdit}}<a class="btn btn-small btn-secondary" href="{{.EditURL}}">Editar</a>{{end}}
+                  {{if eq .Status "active"}}
+                    <form method="post" action="{{.WithdrawURL}}" class="inline-form" onsubmit="return confirm('¿Retirar esta publicación? Dejará de aparecer en el catálogo.');">
+                      {{template "csrf" $}}
+                      <button type="submit" class="btn btn-small btn-danger">Retirar</button>
+                    </form>
+                  {{end}}
+                </td>
+              </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    {{else}}
+      <p class="muted">Todavía no tienes publicaciones.</p>
+    {{end}}
+  </section>
+
+  <section class="section-block">
+    <h2>Vehículos activos</h2>
+    {{if .Cards}}
+      <div class="car-grid">
+        {{range .Cards}}{{template "car-card" .}}{{end}}
+      </div>
+      {{if gt .Result.TotalPages 1}}
+        <nav class="pagination" aria-label="Paginación">
+          {{if gt .Result.Page 1}}<a class="btn btn-secondary" href="{{.PrevURL}}">Anterior</a>{{end}}
+          <span>Página {{.Result.Page}} de {{.Result.TotalPages}}</span>
+          {{if lt .Result.Page .Result.TotalPages}}<a class="btn btn-secondary" href="{{.NextURL}}">Siguiente</a>{{end}}
+        </nav>
+      {{end}}
+    {{else}}
+      {{template "empty-catalog" .}}
+    {{end}}
+  </section>
+</main>
+{{template "footer" .}}

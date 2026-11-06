@@ -1,0 +1,71 @@
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Administración</p>
+      <h1>Moderación de publicaciones</h1>
+      <p class="muted">La retirada exige una razón y queda registrada de forma permanente.</p>
+    </div>
+  </div>
+
+  {{template "flash" .}}
+
+  <section class="section-block">
+    <h2>Publicaciones</h2>
+    {{if .Cars}}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Vehículo</th><th>Año</th><th>Precio</th><th>Estado</th><th>Acción</th></tr>
+          </thead>
+          <tbody>
+            {{range .Cars}}
+              <tr>
+                <td>{{if eq .Status "active"}}<a href="/cars/{{.ID}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}</td>
+                <td>{{.Year}}</td>
+                <td>{{.Price}}</td>
+                <td><span class="badge badge-{{.Status}}">{{.StatusLabel}}</span></td>
+                <td>
+                  {{if ne .Status "removed"}}
+                    <a class="btn btn-small btn-danger" href="/admin/publicaciones/{{.ID}}/retirar">Retirar</a>
+                  {{else}}
+                    <span class="muted">Retirada</span>
+                  {{end}}
+                </td>
+              </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    {{else}}
+      <p class="muted">No hay publicaciones registradas.</p>
+    {{end}}
+  </section>
+
+  <section class="section-block">
+    <h2>Registro de moderación</h2>
+    {{if .Entries}}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Fecha</th><th>Administrador</th><th>Publicación</th><th>Razón</th></tr>
+          </thead>
+          <tbody>
+            {{range .Entries}}
+              <tr>
+                <td>{{.CreatedAt.Format "02/01/2006 15:04"}}</td>
+                <td>{{.AdminName}}</td>
+                <td>{{.CarTitle}}</td>
+                <td>{{.Reason}}</td>
+              </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    {{else}}
+      <p class="muted">Todavía no se han registrado retiradas administrativas.</p>
+    {{end}}
+  </section>
+</main>
+{{template "footer" .}}

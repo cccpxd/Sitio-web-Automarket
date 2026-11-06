@@ -1,0 +1,33 @@
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Mensajes</p>
+      <h1>Conversaciones</h1>
+      <p class="muted">Solo tú y la otra persona pueden leer estos mensajes.</p>
+    </div>
+  </div>
+  {{template "flash" .}}
+  {{if .Conversations}}
+    <div class="conversation-list">
+      {{range .Conversations}}
+        <a class="conversation-row" href="/mensajes/{{.ID}}">
+          <div>
+            <strong>{{.CarTitle}} {{.CarYear}}</strong>
+            <p class="muted">Con {{.OtherName}}</p>
+            <p>{{.LastMessage}}</p>
+          </div>
+          {{if gt .UnreadCount 0}}<span class="badge badge-unread">{{.UnreadCount}} sin leer</span>{{end}}
+        </a>
+      {{end}}
+    </div>
+  {{else}}
+    <section class="empty-state">
+      <h2>Todavía no tienes mensajes</h2>
+      <p>Cuando alguien esté interesado en una publicación aparecerá aquí.</p>
+      <a class="btn btn-primary" href="/cars">Explorar catálogo</a>
+    </section>
+  {{end}}
+</main>
+{{template "footer" .}}

@@ -1,0 +1,14 @@
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  <section class="empty-state">
+    <p class="eyebrow">Error {{.Status}}</p>
+    <h1>{{.Message}}</h1>
+    <p class="muted">Puedes volver al catálogo o a tu cuenta para continuar.</p>
+    <div class="form-actions">
+      <a class="btn btn-primary" href="/cars">Ir al catálogo</a>
+      {{if .User}}<a class="btn btn-secondary" href="/dashboard">Mi cuenta</a>{{end}}
+    </div>
+  </section>
+</main>
+{{template "footer" .}}

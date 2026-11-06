@@ -1,72 +1,60 @@
-<!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{.Title}}</title>
-    <link rel="stylesheet" href="/static/css/style.css" />
-  </head>
-  <body class="auth-page">
-    <div class="auth-shell">
-      <div class="auth-panel info-panel">
-        <div class="brand-block">
-          <span class="brand-mark">A</span>
-          <h1>AutoMarket</h1>
-        </div>
-        <p class="info-copy">
-          Gestiona tus ventas, conecta con compradores y administra el acceso del equipo con seguridad.
-        </p>
-        <ul class="feature-list">
-          <li>Registro rápido para vendedores</li>
-          <li>Inicio de sesión seguro</li>
-          <li>Control por roles</li>
-        </ul>
+{{template "head" .}}
+<main class="auth-page">
+  <div class="auth-shell">
+    <section class="auth-panel info-panel">
+      <a class="brand" href="/">AutoMarket</a>
+      <p class="info-copy">Publica tu vehículo con fotos, recibe mensajes de interesados y gestiona tu venta en un solo lugar.</p>
+      <ul class="feature-list">
+        <li>Catálogo público sin registro</li>
+        <li>Publicación inmediata con hasta 6 fotos</li>
+        <li>Mensajes asociados a cada vehículo</li>
+      </ul>
+    </section>
+
+    <section class="auth-panel form-panel">
+      <div class="tabs">
+        <a href="/login{{if .Next}}?next={{.Next}}{{end}}" class="tab {{if eq .ActivePage "login"}}active{{end}}">Iniciar sesión</a>
+        <a href="/register{{if .Next}}?next={{.Next}}{{end}}" class="tab {{if eq .ActivePage "register"}}active{{end}}">Registrarse</a>
       </div>
 
-      <div class="auth-panel form-panel">
-        <div class="tabs">
-          <a href="/login" class='tab {{if eq .ActivePage "login"}}active{{end}}'>Iniciar sesión</a>
-          <a href="/register" class='tab {{if eq .ActivePage "register"}}active{{end}}'>Registrar vendedor</a>
-        </div>
+      {{if .SuccessMessage}}<div class="alert alert-success" role="status">{{.SuccessMessage}}</div>{{end}}
+      {{if .ErrorMessage}}<div class="alert alert-error" role="alert">{{.ErrorMessage}}</div>{{end}}
 
-        {{if .ErrorMessage}}
-        <div class="alert error">{{.ErrorMessage}}</div>
-        {{end}}
-
-        {{if .SuccessMessage}}
-        <div class="alert success">{{.SuccessMessage}}</div>
-        {{end}}
-
-        {{if eq .ActivePage "login"}}
-        <form class="auth-form" method="POST" action="/login">
+      {{if eq .ActivePage "register"}}
+        <form class="auth-form" method="post" action="/register">
+          {{template "csrf" .}}
+          {{if .Next}}<input type="hidden" name="next" value="{{.Next}}" />{{end}}
           <div class="field">
-            <label for="login-email">Email</label>
-            <input id="login-email" name="email" type="email" placeholder="correo@automarket.com" required />
+            <label for="name">Nombre</label>
+            <input id="name" name="name" type="text" autocomplete="name" required />
           </div>
           <div class="field">
-            <label for="login-password">Contraseña</label>
-            <input id="login-password" name="password" type="password" placeholder="••••••••" required />
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required />
           </div>
-          <button type="submit" class="btn-primary full">Iniciar sesión</button>
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required />
+          </div>
+          <button class="btn btn-primary full" type="submit">Crear cuenta</button>
         </form>
-        {{else}}
-        <form class="auth-form" method="POST" action="/register">
+      {{else}}
+        <form class="auth-form" method="post" action="/login">
+          {{template "csrf" .}}
+          {{if .Next}}<input type="hidden" name="next" value="{{.Next}}" />{{end}}
           <div class="field">
-            <label for="register-name">Nombre completo</label>
-            <input id="register-name" name="name" type="text" placeholder="Juan Pérez" required />
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required />
           </div>
           <div class="field">
-            <label for="register-email">Email</label>
-            <input id="register-email" name="email" type="email" placeholder="vendedor@automarket.com" required />
+            <label for="password">Contraseña</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
           </div>
-          <div class="field">
-            <label for="register-password">Contraseña</label>
-            <input id="register-password" name="password" type="password" placeholder="Mínimo 6 caracteres" required />
-          </div>
-          <button type="submit" class="btn-primary full">Registrar vendedor</button>
+          <button class="btn btn-primary full" type="submit">Iniciar sesión</button>
         </form>
-        {{end}}
-      </div>
-    </div>
-  </body>
+      {{end}}
+    </section>
+  </div>
+</main>
+</body>
 </html>

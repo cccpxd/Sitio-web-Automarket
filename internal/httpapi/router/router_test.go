@@ -158,21 +158,9 @@ func TestProtectedRouteRequiresSession(t *testing.T) {
 
 func TestLoginCreatesCookieAndAllowsDashboard(t *testing.T) {
 	engine := newTestRouter(t, nil)
+	cookie := loginCookie(t, engine)
 
-	form := url.Values{"email": {"ana@example.com"}, "password": {"secret123"}}
-	login := performRequest(engine, http.MethodPost, "/login", strings.NewReader(form.Encode()), map[string]string{
-		"Content-Type": "application/x-www-form-urlencoded",
-	})
-	if login.Code != http.StatusFound {
-		t.Fatalf("login status = %d, body=%s", login.Code, login.Body.String())
-	}
-
-	cookies := login.Result().Cookies()
-	if len(cookies) == 0 {
-		t.Fatal("login did not set a session cookie")
-	}
-
-	dashboard := performRequest(engine, http.MethodGet, "/dashboard", nil, nil, cookies[0])
+	dashboard := performRequest(engine, http.MethodGet, "/dashboard", nil, nil, cookie)
 	if dashboard.Code != http.StatusOK {
 		t.Fatalf("dashboard status = %d", dashboard.Code)
 	}
@@ -222,15 +210,54 @@ func TestHealthReportsDependencyFailure(t *testing.T) {
 
 func loginCookie(t *testing.T, engine *gin.Engine) *http.Cookie {
 	t.Helper()
-	form := url.Values{"email": {"ana@example.com"}, "password": {"secret123"}}
+	csrf, csrfCookie := fetchCSRF(t, engine)
+	form := url.Values{
+		"email":    {"ana@example.com"},
+		"password": {"secret123"},
+		"_csrf":    {csrf},
+	}
 	login := performRequest(engine, http.MethodPost, "/login", strings.NewReader(form.Encode()), map[string]string{
 		"Content-Type": "application/x-www-form-urlencoded",
-	})
-	cookies := login.Result().Cookies()
-	if len(cookies) == 0 {
-		t.Fatalf("login status = %d, no cookie", login.Code)
+	}, csrfCookie)
+	if login.Code != http.StatusFound {
+		t.Fatalf("login status = %d, body=%s", login.Code, login.Body.String())
 	}
-	return cookies[0]
+	for _, cookie := range login.Result().Cookies() {
+		if cookie.Name != "csrf_token" {
+			return cookie
+		}
+	}
+	t.Fatal("login did not set a session cookie")
+	return nil
+}
+
+func fetchCSRF(t *testing.T, engine *gin.Engine) (string, *http.Cookie) {
+	t.Helper()
+	page := performRequest(engine, http.MethodGet, "/login", nil, nil)
+	if page.Code != http.StatusOK {
+		t.Fatalf("csrf page status = %d", page.Code)
+	}
+	var csrfCookie *http.Cookie
+	for _, cookie := range page.Result().Cookies() {
+		if cookie.Name == "csrf_token" {
+			csrfCookie = cookie
+		}
+	}
+	if csrfCookie == nil {
+		t.Fatal("csrf cookie was not set")
+	}
+	body := page.Body.String()
+	marker := `name="_csrf" value="`
+	index := strings.Index(body, marker)
+	if index < 0 {
+		t.Fatal("csrf field was not rendered")
+	}
+	start := index + len(marker)
+	end := strings.Index(body[start:], `"`)
+	if end < 0 {
+		t.Fatal("csrf field was malformed")
+	}
+	return body[start : start+end], csrfCookie
 }
 
 func performRequest(engine *gin.Engine, method, path string, body io.Reader, headers map[string]string, cookies ...*http.Cookie) *httptest.ResponseRecorder {

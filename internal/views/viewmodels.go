@@ -1,33 +1,239 @@
 package views
 
 import (
+	"fmt"
+	"net/url"
+	"strconv"
 	"time"
 
 	"automarket/internal/domain"
 )
 
-// HomePage is the view model for the landing page.
-type HomePage struct {
-	Title    string
-	Products []Product
+// BasePage groups the data shared by every HTML page.
+type BasePage struct {
+	Title        string
+	CSRF         string
+	User         *UserView
+	ActivePage   string
+	Flash        string
+	ErrorMessage string
 }
 
-type Product struct {
-	ID          string
-	Brand       string
-	Model       string
-	Year        int
-	Description string
-	Price       string
-	Reported    bool
+// NewBasePage builds the shared page data.
+func NewBasePage(csrf string, user *domain.User, title, active string) BasePage {
+	page := BasePage{Title: title, CSRF: csrf, ActivePage: active}
+	if user != nil {
+		view := NewUserView(*user)
+		page.User = &view
+	}
+	return page
 }
 
 // AuthPage is the view model shared by login and registration screens.
 type AuthPage struct {
-	Title          string
-	ActivePage     string
-	ErrorMessage   string
+	BasePage
 	SuccessMessage string
+	Next           string
+}
+
+// HomePage is retained as an alias for the catalog landing page.
+type HomePage struct {
+	BasePage
+	Result   domain.SearchResult
+	Filters  domain.SearchFilters
+	Cards    []CarCard
+	MinPrice string
+	MaxPrice string
+	PrevURL  string
+	NextURL  string
+	Query    string
+}
+
+// CatalogPage is the public catalog and search result page.
+type CatalogPage = HomePage
+
+// CarCard is the compact representation used by catalog grids.
+type CarCard struct {
+	ID          string
+	Title       string
+	Year        int
+	Description string
+	Price       string
+	CoverID     string
+	PhotoCount  int
+	Status      domain.CarStatus
+	StatusLabel string
+	CanEdit     bool
+	WithdrawURL string
+	PublicURL   string
+}
+
+// PhotoView is a public photo reference.
+type PhotoView struct {
+	ID  string
+	Alt string
+}
+
+// CarDetailPage shows a single active listing.
+type CarDetailPage struct {
+	BasePage
+	Car            CarView
+	Photos         []PhotoView
+	ContactMessage string
+	IsOwner        bool
+	CanContact     bool
+	InitialMessage string
+}
+
+// ContactPage is the review screen for the initial interest message.
+type ContactPage struct {
+	BasePage
+	Car          CarView
+	Message      string
+	Conversation string
+}
+
+// CarView is the detailed public representation of a listing.
+type CarView struct {
+	ID          string
+	Brand       string
+	Model       string
+	Title       string
+	Year        int
+	Description string
+	Price       string
+	PriceCents  int64
+	SellerName  string
+	Status      domain.CarStatus
+	StatusLabel string
+	CreatedAt   time.Time
+	EditedAt    *time.Time
+	Photos      []PhotoView
+}
+
+// SalesPage is the seller's "Ventas" section.
+type SalesPage struct {
+	BasePage
+	Result   domain.SearchResult
+	Cards    []CarCard
+	Mine     []MyListing
+	Query    string
+	Year     string
+	MinPrice string
+	MaxPrice string
+	PrevURL  string
+	NextURL  string
+}
+
+// MyListing is one of the seller's own listings, including withdrawn ones.
+type MyListing struct {
+	ID          string
+	Title       string
+	Year        int
+	Price       string
+	Status      domain.CarStatus
+	StatusLabel string
+	CanEdit     bool
+	PublicURL   string
+	EditURL     string
+	WithdrawURL string
+}
+
+// CarForm preserves user input across validation errors.
+type CarForm struct {
+	Brand       string
+	Model       string
+	Year        string
+	Price       string
+	Description string
+	ClientToken string
+}
+
+// PublishPage renders the create or edit listing form.
+type PublishPage struct {
+	BasePage
+	Form      CarForm
+	Errors    map[string]string
+	Photos    []PhotoView
+	IsEdit    bool
+	CarID     string
+	MaxPhotos int
+	MaxBytes  int64
+}
+
+// MessagesPage lists the user's conversations.
+type MessagesPage struct {
+	BasePage
+	Conversations []ConversationView
+}
+
+// ConversationPage renders a single thread.
+type ConversationPage struct {
+	BasePage
+	Conversation ConversationView
+	ReadOnly     bool
+	Error        string
+}
+
+// ConversationView is the safe representation of a thread.
+type ConversationView struct {
+	ID           string
+	CarID        string
+	CarTitle     string
+	CarYear      int
+	CarAvailable bool
+	BuyerName    string
+	SellerName   string
+	UnreadCount  int
+	LastMessage  string
+	CreatedAt    time.Time
+	Messages     []MessageView
+	OtherName    string
+}
+
+// MessageView is one message in a thread.
+type MessageView struct {
+	ID         string
+	SenderID   string
+	SenderName string
+	Body       string
+	CreatedAt  time.Time
+	ReadAt     *time.Time
+	Mine       bool
+}
+
+// ModerationPage is the administrator panel and audit log.
+type ModerationPage struct {
+	BasePage
+	Cars    []CarCard
+	Entries []domain.ModerationEntry
+}
+
+// ModerationConfirmPage asks the administrator for a mandatory reason.
+type ModerationConfirmPage struct {
+	BasePage
+	Car    CarView
+	Reason string
+}
+
+// ErrorPage is a friendly error page.
+type ErrorPage struct {
+	BasePage
+	Status  int
+	Message string
+}
+
+// DashboardPage is the authenticated landing page.
+type DashboardPage struct {
+	BasePage
+	RoleText string
+}
+
+// RolePage is kept for compatibility with older handlers.
+type RolePage struct {
+	BasePage
+	Sellers []UserView
+	Cars    []CarCard
 }
 
 // UserView is the only user representation allowed in responses. It
@@ -40,19 +246,6 @@ type UserView struct {
 	CreatedAt time.Time   `json:"createdAt"`
 }
 
-type DashboardPage struct {
-	Title    string
-	User     UserView
-	RoleText string
-}
-
-type RolePage struct {
-	Title   string
-	User    UserView
-	Cars    []Product
-	Sellers []UserView
-}
-
 func NewUserView(user domain.User) UserView {
 	return UserView{
 		ID:        user.ID,
@@ -63,67 +256,173 @@ func NewUserView(user domain.User) UserView {
 	}
 }
 
-func NewDashboardPage(user domain.User) DashboardPage {
+func NewDashboardPage(csrf string, user *domain.User) DashboardPage {
 	return DashboardPage{
-		Title:    "Dashboard",
-		User:     NewUserView(user),
+		BasePage: NewBasePage(csrf, user, "Dashboard", "dashboard"),
 		RoleText: RoleLabel(user.Role),
 	}
 }
 
-func NewRolePage(title string, user domain.User) RolePage {
-	return RolePage{
-		Title: title,
-		User:  NewUserView(user),
-	}
-}
-
-func NewRolePageWithCars(title string, user domain.User, cars []domain.Car) RolePage {
-	products := make([]Product, 0, len(cars))
-	for _, car := range cars {
-		products = append(products, newProduct(car))
-	}
-	return RolePage{
-		Title: title,
-		User:  NewUserView(user),
-		Cars:  products,
-	}
-}
-
-func NewAdminPage(user domain.User, sellers []domain.User, cars []domain.Car) RolePage {
-	products := make([]Product, 0, len(cars))
-	for _, car := range cars {
-		products = append(products, newProduct(car))
-	}
-	sellerViews := make([]UserView, 0, len(sellers))
+func NewRolePage(csrf string, user *domain.User, sellers []domain.User, cars []domain.Car) RolePage {
+	page := RolePage{BasePage: NewBasePage(csrf, user, "Panel de administración", "admin")}
 	for _, seller := range sellers {
-		sellerViews = append(sellerViews, NewUserView(seller))
+		page.Sellers = append(page.Sellers, NewUserView(seller))
 	}
-	return RolePage{
-		Title:   "Panel de administracion",
-		User:    NewUserView(user),
-		Cars:    products,
-		Sellers: sellerViews,
-	}
-}
-
-func NewHomePage(cars []domain.Car) HomePage {
-	products := make([]Product, 0, len(cars))
 	for _, car := range cars {
-		products = append(products, newProduct(car))
+		page.Cars = append(page.Cars, NewCarCard(car, time.Time{}))
 	}
-	return HomePage{Title: "Automarket", Products: products}
+	return page
 }
 
-func newProduct(car domain.Car) Product {
-	return Product{
+func NewCarCard(car domain.Car, now time.Time) CarCard {
+	card := CarCard{
+		ID:          car.ID,
+		Title:       car.Title(),
+		Year:        car.Year,
+		Description: car.Description,
+		Price:       domain.FormatCOP(car.PriceCents),
+		Status:      car.Status,
+		StatusLabel: StatusLabel(car.Status),
+		PhotoCount:  len(car.Photos),
+	}
+	if len(car.Photos) > 0 {
+		card.CoverID = car.Photos[0].ID
+	}
+	if !now.IsZero() {
+		card.CanEdit = car.CanEdit(now)
+	}
+	return card
+}
+
+func NewMyListing(car domain.Car, now time.Time) MyListing {
+	listing := MyListing{
+		ID:          car.ID,
+		Title:       car.Title(),
+		Year:        car.Year,
+		Price:       domain.FormatCOP(car.PriceCents),
+		Status:      car.Status,
+		StatusLabel: StatusLabel(car.Status),
+		CanEdit:     car.CanEdit(now),
+		PublicURL:   "/cars/" + car.ID,
+		EditURL:     "/seller/publicaciones/" + car.ID + "/editar",
+		WithdrawURL: "/seller/publicaciones/" + car.ID + "/retirar",
+	}
+	return listing
+}
+
+func NewCarView(car domain.Car) CarView {
+	view := CarView{
 		ID:          car.ID,
 		Brand:       car.Brand,
 		Model:       car.Model,
+		Title:       car.Title(),
 		Year:        car.Year,
 		Description: car.Description,
-		Price:       car.Price,
-		Reported:    car.Reported,
+		Price:       domain.FormatCOP(car.PriceCents),
+		PriceCents:  car.PriceCents,
+		SellerName:  car.SellerName,
+		Status:      car.Status,
+		StatusLabel: StatusLabel(car.Status),
+		CreatedAt:   car.CreatedAt,
+		EditedAt:    car.EditedAt,
+	}
+	for index, photo := range car.Photos {
+		view.Photos = append(view.Photos, PhotoView{
+			ID:  photo.ID,
+			Alt: fmt.Sprintf("%s %s, fotografía %d", car.Brand, car.Model, index+1),
+		})
+	}
+	return view
+}
+
+func NewConversationView(conversation domain.Conversation, viewerID string) ConversationView {
+	view := ConversationView{
+		ID:           conversation.ID,
+		CarID:        conversation.CarID,
+		CarTitle:     conversation.Car.Title,
+		CarYear:      conversation.Car.Year,
+		CarAvailable: conversation.Car.Status.IsActive(),
+		BuyerName:    conversation.BuyerName,
+		SellerName:   conversation.SellerName,
+		UnreadCount:  conversation.UnreadCount,
+		LastMessage:  conversation.LastMessage,
+		CreatedAt:    conversation.CreatedAt,
+	}
+	if viewerID == conversation.BuyerID {
+		view.OtherName = conversation.SellerName
+	} else {
+		view.OtherName = conversation.BuyerName
+	}
+	for _, message := range conversation.Messages {
+		view.Messages = append(view.Messages, MessageView{
+			ID:         message.ID,
+			SenderID:   message.SenderID,
+			SenderName: message.SenderName,
+			Body:       message.Body,
+			CreatedAt:  message.CreatedAt,
+			ReadAt:     message.ReadAt,
+			Mine:       message.SenderID == viewerID,
+		})
+	}
+	return view
+}
+
+// NewCatalogPage builds the catalog page including pagination links.
+func NewCatalogPage(csrf string, user *domain.User, result domain.SearchResult, filters domain.SearchFilters) CatalogPage {
+	page := CatalogPage{
+		BasePage: NewBasePage(csrf, user, "Catálogo", "catalog"),
+		Result:   result,
+		Filters:  filters,
+		Query:    filters.Query,
+	}
+	if filters.MinPriceCents > 0 {
+		page.MinPrice = domain.FormatCOPAmount(filters.MinPriceCents)
+	}
+	if filters.MaxPriceCents > 0 {
+		page.MaxPrice = domain.FormatCOPAmount(filters.MaxPriceCents)
+	}
+	for _, car := range result.Cars {
+		page.Cards = append(page.Cards, NewCarCard(car, time.Time{}))
+	}
+	page.PrevURL = paginationURL(filters, result.Page-1)
+	page.NextURL = paginationURL(filters, result.Page+1)
+	return page
+}
+
+func paginationURL(filters domain.SearchFilters, page int) string {
+	values := url.Values{}
+	if filters.Query != "" {
+		values.Set("q", filters.Query)
+	}
+	if filters.Year > 0 {
+		values.Set("year", strconv.Itoa(filters.Year))
+	}
+	if filters.MinPriceCents > 0 {
+		values.Set("min", domain.FormatCOPAmount(filters.MinPriceCents))
+	}
+	if filters.MaxPriceCents > 0 {
+		values.Set("max", domain.FormatCOPAmount(filters.MaxPriceCents))
+	}
+	if page > 1 {
+		values.Set("page", strconv.Itoa(page))
+	}
+	if len(values) == 0 {
+		return "/cars"
+	}
+	return "/cars?" + values.Encode()
+}
+
+// StatusLabel returns the Spanish label for a listing status.
+func StatusLabel(status domain.CarStatus) string {
+	switch status {
+	case domain.CarStatusActive:
+		return "Activa"
+	case domain.CarStatusWithdrawn:
+		return "Retirada"
+	case domain.CarStatusRemoved:
+		return "Retirada por administración"
+	default:
+		return string(status)
 	}
 }
 

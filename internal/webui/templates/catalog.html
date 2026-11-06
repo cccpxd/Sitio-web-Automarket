@@ -1,0 +1,53 @@
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  <section class="hero">
+    <p class="eyebrow">Catálogo público</p>
+    <h1>Vehículos publicados por vendedores reales</h1>
+    <p class="lead">Consulta fotos, precios en pesos colombianos y contacta al vendedor. Publicar es inmediato y sin aprobación previa.</p>
+  </section>
+
+  {{template "flash" .}}
+
+  <form class="filters" method="get" action="/cars" role="search">
+    <div class="field">
+      <label for="q">Buscar</label>
+      <input id="q" name="q" type="search" value="{{.Filters.Query}}" placeholder="Marca, modelo, año o descripción" />
+    </div>
+    <div class="field field-small">
+      <label for="year">Año</label>
+      <input id="year" name="year" type="number" inputmode="numeric" value="{{if .Filters.Year}}{{.Filters.Year}}{{end}}" placeholder="2013" />
+    </div>
+    <div class="field field-small">
+      <label for="min">Precio mínimo (COP)</label>
+      <input id="min" name="min" type="text" inputmode="numeric" value="{{.MinPrice}}" placeholder="20.000.000" />
+    </div>
+    <div class="field field-small">
+      <label for="max">Precio máximo (COP)</label>
+      <input id="max" name="max" type="text" inputmode="numeric" value="{{.MaxPrice}}" placeholder="80.000.000" />
+    </div>
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-primary">Buscar</button>
+      <a class="btn btn-secondary" href="/cars">Limpiar filtros</a>
+    </div>
+  </form>
+
+  {{if .Cards}}
+    <div class="results-meta">
+      <p>{{.Result.Total}} vehículo{{if ne .Result.Total 1}}s{{end}} encontrado{{if ne .Result.Total 1}}s{{end}}</p>
+    </div>
+    <div class="car-grid">
+      {{range .Cards}}{{template "car-card" .}}{{end}}
+    </div>
+    {{if gt .Result.TotalPages 1}}
+      <nav class="pagination" aria-label="Paginación">
+        {{if gt .Result.Page 1}}<a class="btn btn-secondary" href="{{.PrevURL}}">Anterior</a>{{end}}
+        <span>Página {{.Result.Page}} de {{.Result.TotalPages}}</span>
+        {{if lt .Result.Page .Result.TotalPages}}<a class="btn btn-secondary" href="{{.NextURL}}">Siguiente</a>{{end}}
+      </nav>
+    {{end}}
+  {{else}}
+    {{if .Filters.HasFilters}}{{template "no-results" .}}{{else}}{{template "empty-catalog" .}}{{end}}
+  {{end}}
+</main>
+{{template "footer" .}}

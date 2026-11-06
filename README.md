@@ -1,6 +1,6 @@
 # AutoMarket
 
-Aplicación web de venta de autos usados. Incluye landing page, registro de vendedores, inicio de sesión con sesiones en servidor y rutas protegidas por rol (`seller` y `admin`).
+Aplicación web de venta de autos usados. Incluye catálogo público, publicación y retiro de vehículos, mensajería, moderación, registro de vendedores, inicio de sesión con sesiones en servidor y rutas protegidas por rol (`seller` y `admin`).
 
 ## Stack
 
@@ -79,7 +79,7 @@ go run .
 
 3. Abre `http://localhost:8080`.
 
-Las tablas se crean automáticamente al arrancar. Si defines `ADMIN_EMAIL` y `ADMIN_PASSWORD`, se crea un administrador inicial de forma idempotente.
+Las tablas se crean automáticamente al arrancar. Si defines `ADMIN_EMAIL` y `ADMIN_PASSWORD`, se crea un administrador inicial de forma idempotente. El catálogo empieza vacío: no se insertan vehículos de ejemplo.
 
 ## Variables de entorno
 
@@ -99,6 +99,14 @@ Las tablas se crean automáticamente al arrancar. Si defines `ADMIN_EMAIL` y `AD
 | `DB_MAX_IDLE_CONNS` | No | `2` | Conexiones idle máximas. |
 | `DB_CONN_MAX_LIFETIME` | No | `5m` | Vida máxima de una conexión. |
 | `DB_CONNECT_TIMEOUT` | No | `10s` | Timeout de conexión inicial. |
+
+## Flujos principales
+
+- Los visitantes consultan `/cars`, buscan por texto/año/precio y abren `/cars/:id` sin sesión.
+- Los vendedores publican en `/seller/publicar`; las fotografías JPEG/PNG se validan, normalizan y guardan en PostgreSQL, con máximo 6 archivos de 5 MiB.
+- `/seller/ventas` combina el catálogo activo con las publicaciones propias, incluidas las retiradas lógicamente.
+- `/mensajes` conserva conversaciones por publicación; los administradores pueden leerlas, pero no responder.
+- `/admin/moderacion` permite retirar publicaciones con razón obligatoria y conserva auditoría.
 
 ## Pruebas y validación
 
@@ -125,4 +133,5 @@ Consulta [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md). Resumen:
 - Solo se guarda el hash SHA-256 del token de sesión, nunca el token en claro.
 - Las contraseñas usan PBKDF2-HMAC-SHA256 con 600.000 iteraciones.
 - El endpoint `/profile` devuelve un view model sin `PasswordHash`.
-- El catálogo de vehículos sigue siendo una vista de demostración; `POST /cars` y `GET /users` son placeholders existentes.
+- Las fotografías se sirven desde `/photos/:id` con `ETag`, `Content-Length` y control de acceso por estado de publicación.
+- `GET /users` se conserva como endpoint administrativo de compatibilidad; las operaciones de vehículos se realizan mediante el flujo de publicación autenticado.

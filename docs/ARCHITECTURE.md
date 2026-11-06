@@ -72,8 +72,26 @@ Tablas:
 
 - `users`: cuenta, hash de contraseña y rol.
 - `sessions`: fingerprint del token, usuario, creación y expiración.
+- `cars`: publicación, precio entero en COP, estado (`active`, `withdrawn`, `removed`), propietario y ventana de edición.
+- `car_photos`: metadatos y contenido JPEG normalizado en `BYTEA`; los listados solo consultan metadatos.
+- `conversations` y `messages`: conversaciones únicas por `(car_id, buyer_id)` y mensajes con lectura.
+- `moderation_logs`: auditoría de retiradas administrativas.
 
 No hay almacenamiento en memoria en el camino de producción.
+
+Las publicaciones usan borrado lógico para conservar conversaciones y evidencia. El catálogo, el detalle público, la búsqueda y el endpoint de fotos solo exponen publicaciones activas; el propietario y el administrador pueden consultar fotos de publicaciones no activas según sus permisos.
+
+## Rutas y autorización
+
+| Superficie | Visitante | Vendedor | Administrador |
+| --- | --- | --- | --- |
+| `/`, `/cars`, `/cars/:id`, `/photos/:id` activos | Leer | Leer | Leer |
+| `/seller/publicar`, `/seller/ventas`, edición y retirada propia | — | Propietario | — |
+| `/mensajes` y conversaciones participantes | — | Participante | Lectura, sin responder |
+| `/admin/moderacion` y retirada administrativa | — | — | Administrador |
+| `/login`, `/register` y `/logout` | Sí | Sí | Sí |
+
+Las rutas POST pasan por CSRF de doble envío. La autorización se aplica en middleware y se repite en los servicios/repositorios para impedir que una llamada directa al endpoint salte la propiedad o el rol.
 
 ## Extensión
 

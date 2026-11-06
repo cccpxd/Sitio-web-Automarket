@@ -1,0 +1,27 @@
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  <a class="back-link" href="/admin/moderacion">← Volver a moderación</a>
+  <div class="form-card">
+    <p class="eyebrow">Confirmar retirada</p>
+    <h1>{{.Car.Title}} {{.Car.Year}}</h1>
+    <p class="detail-price">{{.Car.Price}}</p>
+    <p>Vendedor: <strong>{{.Car.SellerName}}</strong></p>
+    <p class="muted">La publicación dejará de aparecer en el catálogo, Ventas, el detalle y la búsqueda. Sus conversaciones se conservan.</p>
+
+    {{template "flash" .}}
+
+    <form method="post" action="/admin/publicaciones/{{.Car.ID}}/retirar">
+      {{template "csrf" .}}
+      <div class="field">
+        <label for="reason">Razón de la retirada (obligatoria)</label>
+        <textarea id="reason" name="reason" rows="4" maxlength="500" required>{{.Reason}}</textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-danger" type="submit" onclick="return confirm('¿Confirmas retirar esta publicación? La acción quedará registrada.');">Confirmar retirada</button>
+        <a class="btn btn-secondary" href="/admin/moderacion">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</main>
+{{template "footer" .}}

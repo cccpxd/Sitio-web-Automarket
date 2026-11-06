@@ -1,0 +1,59 @@
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  <a class="back-link" href="/cars/{{.Car.ID}}">← Volver a la publicación</a>
+  <div class="contact-layout">
+    <section class="form-card">
+      <p class="eyebrow">Contactar al vendedor</p>
+      <h1>{{.Car.Title}} {{.Car.Year}}</h1>
+      <p class="detail-price">{{.Car.Price}}</p>
+      {{template "flash" .}}
+      <form method="post" action="/cars/{{.Car.ID}}/contacto" id="contact-form" data-car-id="{{.Car.ID}}" data-authenticated="{{if .User}}true{{else}}false{{end}}">
+        {{template "csrf" .}}
+        <div class="field">
+          <label for="message">Mensaje</label>
+          <textarea id="message" name="message" rows="6" maxlength="1000" required>{{.Message}}</textarea>
+          <p class="hint">Puedes editar el texto antes de enviarlo. Si necesitas iniciar sesión, conservaremos tu borrador.</p>
+        </div>
+        <button class="btn btn-primary" type="submit">{{if .User}}Enviar mensaje{{else}}Iniciar sesión y enviar{{end}}</button>
+      </form>
+    </section>
+    <aside class="summary-card">
+      <h2>{{.Car.Title}}</h2>
+      <p class="muted">Año {{.Car.Year}}</p>
+      <p class="car-price">{{.Car.Price}}</p>
+      <p>{{.Car.Description}}</p>
+      <p class="muted">Vendedor: {{.Car.SellerName}}</p>
+    </aside>
+  </div>
+</main>
+
+<script>
+  (function () {
+    var form = document.getElementById('contact-form');
+    var textarea = document.getElementById('message');
+    if (!form || !textarea) return;
+    var key = 'draft:' + form.getAttribute('data-car-id');
+    try {
+      var saved = window.sessionStorage.getItem(key);
+      if (saved) {
+        textarea.value = saved;
+      }
+    } catch (error) {
+      // Storage can be unavailable in private modes; the server-rendered text
+      // is still a safe fallback.
+    }
+    form.addEventListener('submit', function () {
+      try {
+        if (form.getAttribute('data-authenticated') === 'true') {
+          window.sessionStorage.removeItem(key);
+        } else {
+          window.sessionStorage.setItem(key, textarea.value);
+        }
+      } catch (error) {
+        // Ignore storage failures and let the form submit normally.
+      }
+    });
+  })();
+</script>
+{{template "footer" .}}

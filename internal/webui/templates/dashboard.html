@@ -1,32 +1,21 @@
-<!DOCTYPE html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{.Title}}</title>
-    <link rel="stylesheet" href="/static/css/style.css" />
-  </head>
-  <body>
-    <header class="topbar dashboard-header">
-      <div class="container nav">
-        <div class="brand">AutoMarket</div>
-        <nav>
-          <a href="/dashboard">Dashboard</a>
-          <a href="/profile">Perfil</a>
-          {{if eq .User.Role "seller"}}<a href="/seller-panel">Vendedor</a>{{end}}
-          {{if eq .User.Role "admin"}}<a href="/admin-panel">Admin</a>{{end}}
-        </nav>
-        <a class="btn-primary" href="/logout">Cerrar sesión</a>
-      </div>
-    </header>
-
-    <main class="dashboard-main container">
-      <div class="welcome-card">
-        <p class="eyebrow">Bienvenido</p>
-        <h1>{{.User.Name}}</h1>
-        <p>Rol: <strong>{{.RoleText}}</strong></p>
-        <p>Email: {{.User.Email}}</p>
-      </div>
-    </main>
-  </body>
-</html>
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  <section class="hero hero-small">
+    <p class="eyebrow">Mi cuenta</p>
+    <h1>Hola, {{.User.Name}}</h1>
+    <p class="lead">Rol: {{.RoleText}} · {{.User.Email}}</p>
+  </section>
+  <div class="card-grid">
+    <a class="action-card" href="/cars"><strong>Catálogo</strong><span>Consulta los vehículos activos.</span></a>
+    {{if eq .User.Role "seller"}}
+      <a class="action-card" href="/seller/ventas"><strong>Ventas</strong><span>Gestiona tus publicaciones.</span></a>
+      <a class="action-card" href="/seller/publicar"><strong>Publicar</strong><span>Agrega un vehículo con fotos.</span></a>
+    {{end}}
+    <a class="action-card" href="/mensajes"><strong>Mensajes</strong><span>Revisa conversaciones de interesados.</span></a>
+    {{if eq .User.Role "admin"}}
+      <a class="action-card" href="/admin/moderacion"><strong>Moderación</strong><span>Retira publicaciones con trazabilidad.</span></a>
+    {{end}}
+  </div>
+</main>
+{{template "footer" .}}

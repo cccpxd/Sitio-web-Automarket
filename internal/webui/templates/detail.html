@@ -1,0 +1,50 @@
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  {{template "flash" .}}
+  <article class="detail">
+    <div class="detail-gallery">
+      {{if .Photos}}
+        <div class="detail-main-photo">
+          <img src="/photos/{{(index .Photos 0).ID}}" alt="{{(index .Photos 0).Alt}}" />
+        </div>
+        {{if gt (len .Photos) 1}}
+          <div class="detail-thumbs">
+            {{range .Photos}}
+              <a href="/photos/{{.ID}}" target="_blank" rel="noopener">
+                <img src="/photos/{{.ID}}" alt="{{.Alt}}" loading="lazy" />
+              </a>
+            {{end}}
+          </div>
+        {{end}}
+      {{else}}
+        <p class="muted">Esta publicación no tiene fotografías disponibles.</p>
+      {{end}}
+    </div>
+
+    <div class="detail-body">
+      <p class="eyebrow">Vehículo</p>
+      <h1>{{.Car.Title}} <span class="year">{{.Car.Year}}</span></h1>
+      <p class="detail-price">{{.Car.Price}}</p>
+      <p class="detail-description">{{.Car.Description}}</p>
+
+      <dl class="detail-meta">
+        <div><dt>Vendedor</dt><dd>{{.Car.SellerName}}</dd></div>
+        <div><dt>Publicado</dt><dd>{{.Car.CreatedAt.Format "02/01/2006 15:04"}}</dd></div>
+        {{if .Car.EditedAt}}<div><dt>Editado</dt><dd>{{.Car.EditedAt.Format "02/01/2006 15:04"}}</dd></div>{{end}}
+        <div><dt>Estado</dt><dd>{{.Car.StatusLabel}}</dd></div>
+      </dl>
+
+      <div class="detail-actions">
+        {{if .IsOwner}}
+          <p class="muted">Esta es tu publicación.</p>
+          <a class="btn btn-secondary" href="/seller/ventas">Gestionar en Ventas</a>
+        {{else if .CanContact}}
+          <a class="btn btn-primary" href="/cars/{{.Car.ID}}/contacto">Estoy interesado</a>
+        {{end}}
+        <a class="btn btn-ghost" href="/cars">Volver al catálogo</a>
+      </div>
+    </div>
+  </article>
+</main>
+{{template "footer" .}}

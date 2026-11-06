@@ -3,6 +3,8 @@ package handlers
 import (
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"automarket/internal/domain"
 	"automarket/internal/httpapi"
@@ -14,47 +16,33 @@ import (
 type AuthHandler struct {
 	auth     httpapi.AuthService
 	admin    httpapi.AdminService
-	cars     httpapi.CarService
 	renderer httpapi.Renderer
 	logger   *slog.Logger
 	cookie   httpapi.CookieConfig
 }
 
-func NewAuthHandler(auth httpapi.AuthService, renderer httpapi.Renderer, logger *slog.Logger, cookie httpapi.CookieConfig, cars ...httpapi.CarService) *AuthHandler {
-	h := &AuthHandler{
-		auth:     auth,
-		renderer: renderer,
-		logger:   logger,
-		cookie:   cookie,
-	}
-	if len(cars) > 0 {
-		h.cars = cars[0]
-	}
-	return h
+func NewAuthHandler(auth httpapi.AuthService, renderer httpapi.Renderer, logger *slog.Logger, cookie httpapi.CookieConfig) *AuthHandler {
+	return &AuthHandler{auth: auth, renderer: renderer, logger: logger, cookie: cookie}
 }
 
-func (h *AuthHandler) SetCarService(cars httpapi.CarService) {
-	h.cars = cars
-}
-
-func (h *AuthHandler) SetAdminService(admin httpapi.AdminService) {
-	h.admin = admin
-}
+func (h *AuthHandler) SetAdminService(admin httpapi.AdminService) { h.admin = admin }
 
 type registerPayload struct {
 	Name     string `form:"name" json:"name" binding:"required"`
 	Email    string `form:"email" json:"email" binding:"required"`
 	Password string `form:"password" json:"password" binding:"required"`
+	Next     string `form:"next" json:"next"`
 }
 
 func (h *AuthHandler) RegisterSeller(c *gin.Context) {
 	var payload registerPayload
 	if err := c.ShouldBind(&payload); err != nil {
-		h.renderAuthPage(c, http.StatusBadRequest, views.AuthPage{
-			Title:        "Registro",
-			ActivePage:   "register",
-			ErrorMessage: "Completa todos los campos.",
-		})
+		page := views.AuthPage{
+			BasePage: views.NewBasePage(httpapi.CSRFToken(c), currentUserPtr(c), "Registro", "register"),
+			Next:     safeNext(payload.Next),
+		}
+		page.ErrorMessage = "Completa todos los campos."
+		h.renderAuthPage(c, http.StatusBadRequest, page)
 		return
 	}
 
@@ -68,34 +56,37 @@ func (h *AuthHandler) RegisterSeller(c *gin.Context) {
 		if presentation.Internal {
 			h.logger.ErrorContext(c.Request.Context(), "register_failed", "error", err)
 		}
-		h.renderAuthPage(c, presentation.Status, views.AuthPage{
-			Title:        "Registro",
-			ActivePage:   "register",
-			ErrorMessage: presentation.Message,
-		})
+		page := views.AuthPage{
+			BasePage: views.NewBasePage(httpapi.CSRFToken(c), currentUserPtr(c), "Registro", "register"),
+			Next:     safeNext(payload.Next),
+		}
+		page.ErrorMessage = presentation.Message
+		h.renderAuthPage(c, presentation.Status, page)
 		return
 	}
 
-	h.renderAuthPage(c, http.StatusCreated, views.AuthPage{
-		Title:          "Registro exitoso",
-		ActivePage:     "login",
-		SuccessMessage: "Vendedor registrado correctamente. Ahora puedes iniciar sesion.",
-	})
+	destination := "/login?registered=1"
+	if next := safeNext(payload.Next); next != "" {
+		destination += "&next=" + url.QueryEscape(next)
+	}
+	c.Redirect(http.StatusFound, destination)
 }
 
 type loginPayload struct {
 	Email    string `form:"email" json:"email" binding:"required"`
 	Password string `form:"password" json:"password" binding:"required"`
+	Next     string `form:"next" json:"next"`
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
 	var payload loginPayload
 	if err := c.ShouldBind(&payload); err != nil {
-		h.renderAuthPage(c, http.StatusBadRequest, views.AuthPage{
-			Title:        "Iniciar sesion",
-			ActivePage:   "login",
-			ErrorMessage: "Email y contrasena requeridos.",
-		})
+		page := views.AuthPage{
+			BasePage: views.NewBasePage(httpapi.CSRFToken(c), currentUserPtr(c), "Iniciar sesión", "login"),
+			Next:     safeNext(payload.Next),
+		}
+		page.ErrorMessage = "Email y contraseña requeridos."
+		h.renderAuthPage(c, http.StatusBadRequest, page)
 		return
 	}
 
@@ -105,18 +96,24 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		if presentation.Internal {
 			h.logger.ErrorContext(c.Request.Context(), "login_failed", "error", err)
 		}
-		h.renderAuthPage(c, presentation.Status, views.AuthPage{
-			Title:        "Iniciar sesion",
-			ActivePage:   "login",
-			ErrorMessage: presentation.Message,
-		})
+		page := views.AuthPage{
+			BasePage: views.NewBasePage(httpapi.CSRFToken(c), currentUserPtr(c), "Iniciar sesión", "login"),
+			Next:     safeNext(payload.Next),
+		}
+		page.ErrorMessage = presentation.Message
+		h.renderAuthPage(c, presentation.Status, page)
 		return
 	}
 
 	h.setSessionCookie(c, result.Token)
-	c.Redirect(http.StatusFound, "/dashboard")
+	destination := safeNext(payload.Next)
+	if destination == "" {
+		destination = "/dashboard"
+	}
+	c.Redirect(http.StatusFound, destination)
 }
 
+// Logout is the POST handler that actually destroys the session.
 func (h *AuthHandler) Logout(c *gin.Context) {
 	token, err := c.Cookie(h.cookie.Name)
 	if err == nil && token != "" {
@@ -124,22 +121,31 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 			h.logger.ErrorContext(c.Request.Context(), "logout_failed", "error", err)
 		}
 	}
-
 	h.clearSessionCookie(c)
 	c.Redirect(http.StatusFound, "/login")
 }
 
+// LogoutPage refuses to close a session on GET so that link prefetching cannot
+// log users out.
+func (h *AuthHandler) LogoutPage(c *gin.Context) {
+	c.Redirect(http.StatusFound, "/login")
+}
+
 func (h *AuthHandler) LoginPage(c *gin.Context) {
-	h.renderAuthPage(c, http.StatusOK, views.AuthPage{
-		Title:      "Iniciar sesion",
-		ActivePage: "login",
-	})
+	page := views.AuthPage{
+		BasePage: views.NewBasePage(httpapi.CSRFToken(c), currentUserPtr(c), "Iniciar sesión", "login"),
+		Next:     safeNext(c.Query("next")),
+	}
+	if c.Query("registered") == "1" {
+		page.SuccessMessage = "Cuenta creada correctamente. Ahora puedes iniciar sesión."
+	}
+	h.renderAuthPage(c, http.StatusOK, page)
 }
 
 func (h *AuthHandler) RegisterPage(c *gin.Context) {
 	h.renderAuthPage(c, http.StatusOK, views.AuthPage{
-		Title:      "Registro vendedor",
-		ActivePage: "register",
+		BasePage: views.NewBasePage(httpapi.CSRFToken(c), currentUserPtr(c), "Registro", "register"),
+		Next:     safeNext(c.Query("next")),
 	})
 }
 
@@ -149,53 +155,8 @@ func (h *AuthHandler) Dashboard(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/login")
 		return
 	}
-	renderHTML(c, h.renderer, h.logger, http.StatusOK, "dashboard.html", views.NewDashboardPage(user))
-}
-
-func (h *AuthHandler) AdminPanel(c *gin.Context) {
-	user, ok := httpapi.CurrentUser(c)
-	if !ok {
-		c.Redirect(http.StatusFound, "/login")
-		return
-	}
-
-	var sellers []domain.User
-	if h.admin != nil {
-		list, err := h.admin.ListSellers(c.Request.Context())
-		if err != nil {
-			h.logger.ErrorContext(c.Request.Context(), "list_sellers_failed", "error", err)
-		} else {
-			sellers = list
-		}
-	}
-
-	var cars []domain.Car
-	if h.cars != nil {
-		list, err := h.cars.ListCars(c.Request.Context())
-		if err != nil {
-			h.logger.ErrorContext(c.Request.Context(), "list_cars_failed", "error", err)
-		} else {
-			cars = list
-		}
-	}
-
-	renderHTML(c, h.renderer, h.logger, http.StatusOK, "admin.html", views.NewAdminPage(user, sellers, cars))
-}
-
-func (h *AuthHandler) SellerPanel(c *gin.Context) {
-	user, ok := httpapi.CurrentUser(c)
-	if !ok {
-		c.Redirect(http.StatusFound, "/login")
-		return
-	}
-	page := views.NewRolePage("Panel del vendedor", user)
-	if h.cars != nil {
-		cars, err := h.cars.ListCars(c.Request.Context())
-		if err == nil {
-			page = views.NewRolePageWithCars("Panel del vendedor", user, cars)
-		}
-	}
-	renderHTML(c, h.renderer, h.logger, http.StatusOK, "seller.html", page)
+	renderHTML(c, h.renderer, h.logger, http.StatusOK, "dashboard.html",
+		views.NewDashboardPage(httpapi.CSRFToken(c), &user))
 }
 
 type profileResponse struct {
@@ -240,75 +201,6 @@ func (h *AuthHandler) ListUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, messageResponse{Message: "lista de usuarios", Role: user.Role})
 }
 
-type carPayload struct {
-	Brand       string `form:"brand" json:"brand" binding:"required"`
-	Model       string `form:"model" json:"model" binding:"required"`
-	Year        int    `form:"year" json:"year" binding:"required"`
-	Description string `form:"description" json:"description"`
-	Price       string `form:"price" json:"price" binding:"required"`
-}
-
-func (h *AuthHandler) CreateCar(c *gin.Context) {
-	user, ok := httpapi.CurrentUser(c)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "no autorizado"})
-		return
-	}
-
-	var payload carPayload
-	if err := c.ShouldBind(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "datos invalidos"})
-		return
-	}
-
-	if h.cars != nil {
-		_, err := h.cars.CreateCar(c.Request.Context(), user.ID, service.CreateCarInput{
-			Brand:       payload.Brand,
-			Model:       payload.Model,
-			Year:        payload.Year,
-			Description: payload.Description,
-			Price:       payload.Price,
-		})
-		if err != nil {
-			h.logger.ErrorContext(c.Request.Context(), "create_car_failed", "error", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "no se pudo crear el vehiculo"})
-			return
-		}
-	}
-
-	if c.GetHeader("Accept") == "application/json" {
-		c.JSON(http.StatusCreated, messageResponse{Message: "vehiculo creado", Role: user.Role})
-		return
-	}
-	c.Redirect(http.StatusFound, "/seller-panel")
-}
-
-func (h *AuthHandler) DeleteCar(c *gin.Context) {
-	if h.cars == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "servicio no disponible"})
-		return
-	}
-	if err := h.cars.DeleteCar(c.Request.Context(), c.Param("id")); err != nil {
-		h.logger.ErrorContext(c.Request.Context(), "delete_car_failed", "error", err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "publicacion no encontrada"})
-		return
-	}
-	c.Redirect(http.StatusFound, "/admin-panel")
-}
-
-func (h *AuthHandler) ReportCar(c *gin.Context) {
-	if h.cars == nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "servicio no disponible"})
-		return
-	}
-	if err := h.cars.ReportCar(c.Request.Context(), c.Param("id")); err != nil {
-		h.logger.ErrorContext(c.Request.Context(), "report_car_failed", "error", err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "publicacion no encontrada"})
-		return
-	}
-	c.Redirect(http.StatusFound, "/admin-panel")
-}
-
 func (h *AuthHandler) setSessionCookie(c *gin.Context, token string) {
 	c.SetSameSite(h.cookie.SameSite)
 	c.SetCookie(h.cookie.Name, token, int(h.cookie.TTL.Seconds()), "/", "", h.cookie.Secure, true)
@@ -321,4 +213,25 @@ func (h *AuthHandler) clearSessionCookie(c *gin.Context) {
 
 func (h *AuthHandler) renderAuthPage(c *gin.Context, status int, page views.AuthPage) {
 	renderHTML(c, h.renderer, h.logger, status, "auth.html", page)
+}
+
+func currentUserPtr(c *gin.Context) *domain.User {
+	user, ok := httpapi.CurrentUser(c)
+	if !ok {
+		return nil
+	}
+	return &user
+}
+
+// safeNext accepts only local absolute paths to prevent open redirects.
+func safeNext(next string) string {
+	next = strings.TrimSpace(next)
+	if next == "" || !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.Contains(next, "\\") {
+		return ""
+	}
+	parsed, err := url.Parse(next)
+	if err != nil || parsed.IsAbs() || parsed.Host != "" || parsed.Scheme != "" {
+		return ""
+	}
+	return next
 }

@@ -3,6 +3,7 @@ package postgres_test
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -41,6 +42,7 @@ func TestRepositories(t *testing.T) {
 	if err := postgres.Migrate(ctx, db); err != nil {
 		t.Fatalf("idempotent migration: %v", err)
 	}
+	assertSchema(t, ctx, db)
 
 	users := postgres.NewUserRepository(db)
 	sessions := postgres.NewSessionRepository(db)
@@ -55,6 +57,7 @@ func TestRepositories(t *testing.T) {
 		Role:         domain.RoleSeller,
 		CreatedAt:    now,
 	}
+
 	t.Cleanup(func() {
 		_, _ = db.ExecContext(context.Background(), `DELETE FROM users WHERE email = $1`, email)
 	})
@@ -62,6 +65,7 @@ func TestRepositories(t *testing.T) {
 	if err := users.Create(ctx, user); err != nil {
 		t.Fatalf("create user: %v", err)
 	}
+
 	duplicate := user
 	duplicate.ID = randomHex(t, 16)
 	if err := users.Create(ctx, duplicate); !errors.Is(err, domain.ErrEmailTaken) {
@@ -116,6 +120,33 @@ func TestRepositories(t *testing.T) {
 	}
 	if _, err := sessions.FindUser(ctx, expiredHash, now); !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("expired session error = %v", err)
+	}
+}
+
+func assertSchema(t *testing.T, ctx context.Context, db *sql.DB) {
+	t.Helper()
+	tables := []string{"cars", "car_photos", "conversations", "messages", "moderation_logs"}
+	for _, table := range tables {
+		var exists bool
+		row := db.QueryRowContext(ctx,
+			`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1)`, table)
+		if err := row.Scan(&exists); err != nil {
+			t.Fatalf("check table %s: %v", table, err)
+		}
+		if !exists {
+			t.Fatalf("table %s was not created", table)
+		}
+	}
+	var nullable string
+	for _, column := range []string{"seller_id", "price_cents"} {
+		if err := db.QueryRowContext(ctx, `
+			SELECT is_nullable FROM information_schema.columns
+			WHERE table_schema = 'public' AND table_name = 'cars' AND column_name = $1`, column).Scan(&nullable); err != nil {
+			t.Fatalf("check cars.%s: %v", column, err)
+		}
+		if nullable != "NO" {
+			t.Fatalf("cars.%s is nullable", column)
+		}
 	}
 }
 

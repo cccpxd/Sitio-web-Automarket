@@ -178,21 +178,29 @@ Esperado: `200` y `text/html` / `text/css`.
 
 En **Vercel → Logs** deben aparecer líneas JSON `http_request` con método, ruta, estado y duración. No deben aparecer contraseñas, tokens ni cookies.
 
-## 8. Riesgos y limitaciones
+## 8. Datos de marketplace y límites
+
+La migración crea `cars`, `car_photos`, `conversations`, `messages` y `moderation_logs` de forma idempotente. `cars.status` implementa retiro lógico para conservar conversaciones y auditoría. `price_cents` es la representación numérica usada por filtros; el formulario recibe precios enteros en COP.
+
+Las imágenes se almacenan como JPEG normalizado en PostgreSQL: máximo 6 por publicación, 5 MiB por archivo, dimensiones entre 50 y 6000 px. El listado nunca carga el campo `data`; `/photos/:id` lee solo la imagen solicitada. En Vercel, el límite de payload de la plataforma puede ser inferior al máximo lógico de la aplicación; si el proveedor limita el multipart antes de llegar al servidor, se debe reducir el tamaño total o migrar el upload a almacenamiento externo.
+
+Todos los formularios POST incluyen el token CSRF de doble envío. El logout efectivo es POST; `GET /logout` solo redirige. El parámetro `next` acepta únicamente rutas locales.
+
+## 9. Riesgos y limitaciones
 
 - **Go runtime Beta:** el preset puede cambiar. Mantén `go.mod` y `vercel.json` versionados y prueba cada actualización. Si el preset se retirara, la app puede moverse a Render/Fly/Railway o a un contenedor sin cambiar la lógica: solo escucha `$PORT` y usa PostgreSQL.
 - **Cold starts + PBKDF2:** 600.000 iteraciones son costosas por diseño. El primer login tras un cold start puede tardar más y consume CPU facturable. No bajes las iteraciones sin evaluar el riesgo; si el coste es crítico, considera Argon2id en el futuro.
 - **Conexiones a base de datos:** cada instancia mantiene su pool. Usa el endpoint pooled y límites conservadores. Un pico de concurrencia puede agotar las conexiones del proveedor.
 - **Limpieza de sesiones:** se ejecuta de forma oportunista en cada login. Para volúmenes altos, añade un cron de Vercel o un job que borre `expires_at <= now()`.
-- **CSRF:** `SameSite=Lax` mitiga la mayoría de ataques, pero no sustituye un token CSRF en formularios autenticados. Añádelo antes de incorporar operaciones sensibles.
+- **CSRF:** se usa doble envío de cookie y campo/header en todos los métodos inseguros.
 - **Sin rate limiting:** login y registro no tienen límite de intentos. Añade rate limiting en Vercel Firewall o en la capa HTTP.
 - **Sin verificación de email, recuperación de contraseña ni MFA.**
-- **`/users` y `POST /cars` siguen siendo placeholders.** No hay módulo de vehículos persistido.
+- **Migraciones:** el backfill de precios heredados interpreta los valores como COP enteros y elimina únicamente las seis filas demo conocidas sin vendedor.
 - **Logs:** van a stdout; no hay retención propia ni rotación. Usa Vercel Logs/Drains si necesitas auditoría a largo plazo.
 - **Filesystem:** cualquier archivo que se escriba en runtime se pierde. No añadas escritura local.
 - **Límites de Vercel:** payload de 4,5 MB, duración máxima de 300 s por defecto en Hobby. No afectan al flujo actual, pero condicionan futuras subidas de imágenes.
 - **Una sola región:** la app no está diseñada para escritura multi-región. PostgreSQL sigue siendo el punto central.
 
-## 9. Rollback
+## 10. Rollback
 
 Vercel permite volver a un deployment anterior desde el dashboard. El esquema es aditivo (`CREATE TABLE IF NOT EXISTS`) y no destructivo; un rollback de aplicación no elimina datos. Si en el futuro se añaden migraciones destructivas, versiona el esquema y aplica una estrategia expand/contract.

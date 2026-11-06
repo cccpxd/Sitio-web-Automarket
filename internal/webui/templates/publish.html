@@ -1,0 +1,110 @@
+{{template "head" .}}
+{{template "navbar" .}}
+<main class="container page">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">{{if .IsEdit}}Editar publicación{{else}}Nueva publicación{{end}}</p>
+      <h1>{{if .IsEdit}}Actualiza tu vehículo{{else}}Publica tu vehículo{{end}}</h1>
+      <p class="muted">La publicación aparece de inmediato. Puedes editarla durante los primeros 10 minutos.</p>
+    </div>
+  </div>
+
+  {{template "flash" .}}
+
+  <form class="form-card" method="post" enctype="multipart/form-data"
+        action="{{if .IsEdit}}/seller/publicaciones/{{.CarID}}/editar{{else}}/seller/publicar{{end}}">
+    {{template "csrf" .}}
+    {{if not .IsEdit}}<input type="hidden" name="client_token" value="{{.Form.ClientToken}}" />{{end}}
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="brand">Marca</label>
+        <input id="brand" name="brand" type="text" maxlength="60" value="{{.Form.Brand}}" required />
+        {{if .Errors.brand}}<p class="field-error">{{.Errors.brand}}</p>{{end}}
+      </div>
+      <div class="field">
+        <label for="model">Modelo</label>
+        <input id="model" name="model" type="text" maxlength="80" value="{{.Form.Model}}" required />
+        {{if .Errors.model}}<p class="field-error">{{.Errors.model}}</p>{{end}}
+      </div>
+      <div class="field">
+        <label for="year">Año</label>
+        <input id="year" name="year" type="number" inputmode="numeric" min="1900" value="{{.Form.Year}}" required />
+        {{if .Errors.year}}<p class="field-error">{{.Errors.year}}</p>{{end}}
+      </div>
+      <div class="field">
+        <label for="price">Precio (COP)</label>
+        <input id="price" name="price" type="text" inputmode="numeric" value="{{.Form.Price}}" placeholder="45.000.000" required />
+        {{if .Errors.price}}<p class="field-error">{{.Errors.price}}</p>{{end}}
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="description">Descripción</label>
+      <textarea id="description" name="description" rows="5" maxlength="2000" placeholder="Estado, kilometraje, mantenimiento y detalles relevantes.">{{.Form.Description}}</textarea>
+      {{if .Errors.description}}<p class="field-error">{{.Errors.description}}</p>{{end}}
+    </div>
+
+    <div class="field">
+      <label for="photos">Fotografías (JPEG o PNG, máximo {{.MaxPhotos}})</label>
+      <input id="photos" name="photos" type="file" accept="image/jpeg,image/png" multiple {{if not .IsEdit}}required{{end}} />
+      <p class="hint">Cada archivo debe pesar menos de 5 MB. La primera foto será la portada. Puedes quitar fotos antes de guardar.</p>
+      <p class="field-error" id="photo-limit" hidden></p>
+      {{if .Errors.photos}}<p class="field-error">{{.Errors.photos}}</p>{{end}}
+    </div>
+
+    {{if .Photos}}
+      <div class="existing-photos">
+        <p class="hint">Fotos actuales. Si seleccionas nuevas, reemplazarán a estas.</p>
+        <div class="preview-grid">
+          {{range .Photos}}<img src="/photos/{{.ID}}" alt="{{.Alt}}" loading="lazy" />{{end}}
+        </div>
+      </div>
+    {{end}}
+
+    <div id="photo-preview" class="preview-grid" aria-live="polite"></div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">{{if .IsEdit}}Guardar cambios{{else}}Publicar vehículo{{end}}</button>
+      <a class="btn btn-secondary" href="{{if .IsEdit}}/seller/ventas{{else}}/cars{{end}}">Cancelar</a>
+    </div>
+  </form>
+</main>
+
+<script>
+  (function () {
+    var input = document.getElementById('photos');
+    var preview = document.getElementById('photo-preview');
+    if (!input || !preview) return;
+    input.addEventListener('change', function () {
+      preview.innerHTML = '';
+      var files = Array.prototype.slice.call(input.files);
+      files.forEach(function (file, index) {
+        var item = document.createElement('div');
+        item.className = 'preview-item';
+        var reader = new FileReader();
+        reader.onload = function (event) {
+          var img = document.createElement('img');
+          img.src = event.target.result;
+          img.alt = file.name;
+          var remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'btn btn-small btn-danger preview-remove';
+          remove.textContent = 'Quitar';
+          remove.addEventListener('click', function () {
+            files.splice(index, 1);
+            var transfer = new DataTransfer();
+            files.forEach(function (selected) { transfer.items.add(selected); });
+            input.files = transfer.files;
+            input.dispatchEvent(new Event('change'));
+          });
+          item.appendChild(img);
+          item.appendChild(remove);
+          preview.appendChild(item);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+  })();
+</script>
+{{template "footer" .}}
