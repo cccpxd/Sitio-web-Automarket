@@ -6,14 +6,18 @@
     <div class="detail-gallery">
       {{if .Photos}}
         <div class="detail-main-photo">
-          <img src="/photos/{{(index .Photos 0).ID}}" alt="{{(index .Photos 0).Alt}}" />
+          <a class="detail-photo-link" href="/photos/{{(index .Photos 0).ID}}" data-photo-index="0" data-photo-url="/photos/{{(index .Photos 0).ID}}" data-photo-alt="{{(index .Photos 0).Alt}}">
+            <img src="/photos/{{(index .Photos 0).ID}}" alt="{{(index .Photos 0).Alt}}" />
+          </a>
         </div>
         {{if gt (len .Photos) 1}}
           <div class="detail-thumbs">
             {{range .Photos}}
-              <a href="/photos/{{.ID}}" target="_blank" rel="noopener">
-                <img src="/photos/{{.ID}}" alt="{{.Alt}}" loading="lazy" />
-              </a>
+              {{if gt .Index 0}}
+                <a href="/photos/{{.ID}}" data-photo-index="{{.Index}}" data-photo-url="/photos/{{.ID}}" data-photo-alt="{{.Alt}}">
+                  <img src="/photos/{{.ID}}" alt="{{.Alt}}" loading="lazy" />
+                </a>
+              {{end}}
             {{end}}
           </div>
         {{end}}
@@ -30,6 +34,7 @@
 
       <dl class="detail-meta">
         <div><dt>Vendedor</dt><dd>{{.Car.SellerName}}</dd></div>
+        <div><dt>Ciudad</dt><dd>{{.Car.City}}</dd></div>
         <div><dt>Publicado</dt><dd>{{.Car.CreatedAt.Format "02/01/2006 15:04"}}</dd></div>
         {{if .Car.EditedAt}}<div><dt>Editado</dt><dd>{{.Car.EditedAt.Format "02/01/2006 15:04"}}</dd></div>{{end}}
         <div><dt>Estado</dt><dd>{{.Car.StatusLabel}}</dd></div>
@@ -47,4 +52,76 @@
     </div>
   </article>
 </main>
+<div id="photo-viewer" class="photo-viewer" role="dialog" aria-modal="true" aria-labelledby="photo-viewer-title" hidden>
+  <div class="photo-viewer-backdrop" data-photo-close></div>
+  <div class="photo-viewer-panel" tabindex="-1">
+    <h2 id="photo-viewer-title" class="sr-only">Visor de fotografías</h2>
+    <button type="button" class="photo-viewer-close btn btn-ghost" data-photo-close aria-label="Cerrar visor">Cerrar</button>
+    <button type="button" class="photo-viewer-prev btn btn-ghost" data-photo-prev aria-label="Fotografía anterior">Anterior</button>
+    <figure>
+      <img class="photo-viewer-image" data-photo-image alt="" />
+      <figcaption class="photo-viewer-counter" data-photo-counter aria-live="polite"></figcaption>
+    </figure>
+    <button type="button" class="photo-viewer-next btn btn-ghost" data-photo-next aria-label="Fotografía siguiente">Siguiente</button>
+  </div>
+</div>
+<script>
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('[data-photo-index]'));
+    var viewer = document.getElementById('photo-viewer');
+    if (!viewer || !links.length) return;
+    var image = viewer.querySelector('[data-photo-image]');
+    var counter = viewer.querySelector('[data-photo-counter]');
+    var close = viewer.querySelector('.photo-viewer-close');
+    var panel = viewer.querySelector('.photo-viewer-panel');
+    var previous = viewer.querySelector('[data-photo-prev]');
+    var next = viewer.querySelector('[data-photo-next]');
+    var index = 0;
+    var opener = null;
+    function render() {
+      var link = links[index];
+      image.src = link.getAttribute('data-photo-url');
+      image.alt = link.getAttribute('data-photo-alt') || '';
+      counter.textContent = (index + 1) + ' de ' + links.length;
+      previous.hidden = links.length < 2;
+      next.hidden = links.length < 2;
+    }
+    function openViewer(event) {
+      event.preventDefault();
+      opener = event.currentTarget;
+      index = Number(opener.getAttribute('data-photo-index')) || 0;
+      render();
+      viewer.hidden = false;
+      document.body.classList.add('photo-viewer-open');
+      close.focus();
+    }
+    function closeViewer() {
+      viewer.hidden = true;
+      document.body.classList.remove('photo-viewer-open');
+      if (opener) opener.focus();
+    }
+    function move(step) {
+      index = (index + step + links.length) % links.length;
+      render();
+    }
+    links.forEach(function (link) { link.addEventListener('click', openViewer); });
+    close.addEventListener('click', closeViewer);
+    previous.addEventListener('click', function () { move(-1); });
+    next.addEventListener('click', function () { move(1); });
+    viewer.addEventListener('click', function (event) {
+      if (event.target.hasAttribute('data-photo-close')) closeViewer();
+    });
+    viewer.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') { event.preventDefault(); closeViewer(); return; }
+      if (event.key === 'ArrowLeft') { event.preventDefault(); move(-1); return; }
+      if (event.key === 'ArrowRight') { event.preventDefault(); move(1); return; }
+      if (event.key !== 'Tab') return;
+      var focusable = [close, previous, next].filter(function (control) { return !control.hidden; });
+      if (focusable.length === 0) { panel.focus(); return; }
+      var position = focusable.indexOf(document.activeElement);
+      if (event.shiftKey && (position <= 0 || position === -1)) { event.preventDefault(); focusable[focusable.length - 1].focus(); }
+      else if (!event.shiftKey && position === focusable.length - 1) { event.preventDefault(); focusable[0].focus(); }
+    });
+  })();
+</script>
 {{template "footer" .}}

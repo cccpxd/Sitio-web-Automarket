@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	DefaultPageSize    = 12
-	MaxSearchTokens    = 5
-	MaxSearchQueryLen  = 120
+	DefaultPageSize   = 12
+	MaxSearchTokens   = 5
+	MaxSearchQueryLen = 120
 )
 
 // SearchFilters is the normalized input for the catalog query. Tokens are
@@ -16,6 +16,7 @@ const (
 // parameters.
 type SearchFilters struct {
 	Query         string
+	City          string
 	Tokens        []string
 	Year          int
 	MinPriceCents int64
@@ -26,12 +27,13 @@ type SearchFilters struct {
 
 // HasFilters reports whether any user-supplied criterion is active.
 func (f SearchFilters) HasFilters() bool {
-	return f.Query != "" || f.Year != 0 || f.MinPriceCents != 0 || f.MaxPriceCents != 0
+	return f.Query != "" || f.City != "" || f.Year != 0 || f.MinPriceCents != 0 || f.MaxPriceCents != 0
 }
 
 // SearchQuery is the raw, untrusted query-string input.
 type SearchQuery struct {
 	Q        string
+	City     string
 	Year     string
 	MinPrice string
 	MaxPrice string
@@ -52,6 +54,7 @@ func NormalizeSearchFilters(raw SearchQuery) (SearchFilters, error) {
 
 	filters := SearchFilters{
 		Query:    query,
+		City:     strings.Join(strings.Fields(raw.City), " "),
 		Tokens:   tokens,
 		PageSize: DefaultPageSize,
 		Page:     1,

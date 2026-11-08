@@ -22,7 +22,7 @@ func NewCarRepository(db *sql.DB) *CarRepository {
 }
 
 const carSelectColumns = `
-	c.id, c.brand, c.model, c.year, c.description, c.price_cents,
+	c.id, c.brand, c.model, c.year, COALESCE(c.city, ''), c.description, c.price_cents,
 	c.seller_id, u.name, c.status, COALESCE(c.client_token, ''), c.created_at, c.edited_at,
 	COALESCE(p.id, ''), COALESCE(p.content_type, ''), COALESCE(p.byte_size, 0),
 	COALESCE(p.sha256, ''), COALESCE(p.width, 0), COALESCE(p.height, 0),
@@ -48,10 +48,10 @@ func (r *CarRepository) CreateWithPhotos(ctx context.Context, car domain.Car, ph
 
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO cars (
-			id, brand, model, year, description, price, seller_id, reported,
+			id, brand, model, year, city, description, price, seller_id, reported,
 			status, price_cents, client_token, edited_at, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE, $8, $9, $10, $11, $12)`,
-		car.ID, car.Brand, car.Model, car.Year, car.Description,
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, FALSE, $9, $10, $11, $12, $13)`,
+		car.ID, car.Brand, car.Model, car.Year, car.City, car.Description,
 		strconv.FormatInt(car.PriceCents/100, 10),
 		car.SellerID, string(car.Status), car.PriceCents, nullableString(car.ClientToken), car.EditedAt, car.CreatedAt,
 	)
@@ -81,10 +81,10 @@ func (r *CarRepository) UpdateWithPhotos(ctx context.Context, car domain.Car, ph
 
 	result, err := tx.ExecContext(ctx, `
 		UPDATE cars
-		SET brand = $1, model = $2, year = $3, description = $4,
-		    price_cents = $5, price = $6, edited_at = $7
-		WHERE id = $8 AND seller_id = $9 AND status = 'active' AND created_at >= $10`,
-		car.Brand, car.Model, car.Year, car.Description,
+		SET brand = $1, model = $2, year = $3, city = $4, description = $5,
+		    price_cents = $6, price = $7, edited_at = $8
+		WHERE id = $9 AND seller_id = $10 AND status = 'active' AND created_at >= $11`,
+		car.Brand, car.Model, car.Year, car.City, car.Description,
 		car.PriceCents, strconv.FormatInt(car.PriceCents/100, 10), car.EditedAt,
 		car.ID, car.SellerID, cutoff,
 	)
@@ -226,6 +226,10 @@ func (r *CarRepository) Search(ctx context.Context, filters domain.SearchFilters
 		args = append(args, filters.Year)
 		conditions = append(conditions, fmt.Sprintf("c.year = $%d", len(args)))
 	}
+	if filters.City != "" {
+		args = append(args, filters.City)
+		conditions = append(conditions, fmt.Sprintf("LOWER(COALESCE(c.city, '')) = LOWER($%d)", len(args)))
+	}
 	if filters.MinPriceCents > 0 {
 		args = append(args, filters.MinPriceCents)
 		conditions = append(conditions, fmt.Sprintf("c.price_cents >= $%d", len(args)))
@@ -299,7 +303,7 @@ func scanCar(scanner carRowScanner) (domain.Car, error) {
 	var photoCreated time.Time
 
 	err := scanner.Scan(
-		&car.ID, &car.Brand, &car.Model, &car.Year, &car.Description, &car.PriceCents,
+		&car.ID, &car.Brand, &car.Model, &car.Year, &car.City, &car.Description, &car.PriceCents,
 		&car.SellerID, &car.SellerName, &status, &car.ClientToken, &car.CreatedAt, &editedAt,
 		&photoID, &photoType, &photoSize, &photoSHA, &photoWidth, &photoHeight, &photoCreated,
 	)

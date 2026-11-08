@@ -20,13 +20,14 @@ const (
 )
 
 const (
-	MinCarYear          = 1900
-	MaxBrandLength      = 60
-	MaxModelLength      = 80
-	MaxCarDescription   = 2000
-	MaxCarPhotos        = 6
-	EditWindow          = 10 * time.Minute
-	maxPriceWholeCOP    = int64(1_000_000_000_000)
+	MinCarYear        = 1900
+	MaxBrandLength    = 60
+	MaxModelLength    = 80
+	MaxCityLength     = 80
+	MaxCarDescription = 2000
+	MaxCarPhotos      = 6
+	EditWindow        = 10 * time.Minute
+	maxPriceWholeCOP  = int64(1_000_000_000_000)
 )
 
 // Car is a vehicle listing. PriceCents is the authoritative amount, expressed
@@ -35,6 +36,7 @@ type Car struct {
 	ID          string
 	Brand       string
 	Model       string
+	City        string
 	Year        int
 	Description string
 	PriceCents  int64
@@ -61,6 +63,7 @@ func (c Car) CanEdit(now time.Time) bool {
 type CarInput struct {
 	Brand       string
 	Model       string
+	City        string
 	Year        int
 	Description string
 	Price       string
@@ -70,6 +73,7 @@ type CarInput struct {
 type CarDetails struct {
 	Brand       string
 	Model       string
+	City        string
 	Year        int
 	Description string
 	PriceCents  int64
@@ -93,6 +97,7 @@ func NormalizeCarInput(input CarInput, now time.Time) (CarDetails, error) {
 	details := CarDetails{
 		Brand:       normalizeName(input.Brand),
 		Model:       normalizeName(input.Model),
+		City:        normalizeName(input.City),
 		Year:        input.Year,
 		Description: strings.TrimSpace(input.Description),
 	}
@@ -108,6 +113,12 @@ func NormalizeCarInput(input CarInput, now time.Time) (CarDetails, error) {
 	}
 	if utf8.RuneCountInString(details.Model) > MaxModelLength {
 		return CarDetails{}, ErrModelTooLong
+	}
+	if details.City == "" {
+		return CarDetails{}, ErrCityRequired
+	}
+	if utf8.RuneCountInString(details.City) > MaxCityLength {
+		return CarDetails{}, ErrCityTooLong
 	}
 	if details.Year < MinCarYear || details.Year > now.Year()+1 {
 		return CarDetails{}, ErrYearInvalid

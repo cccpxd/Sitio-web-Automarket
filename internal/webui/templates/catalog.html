@@ -14,6 +14,10 @@
       <label for="q">Buscar</label>
       <input id="q" name="q" type="search" value="{{.Filters.Query}}" placeholder="Marca, modelo, año o descripción" />
     </div>
+    <div class="field">
+      <label for="city">Ciudad</label>
+      <input id="city" name="city" type="text" value="{{.City}}" placeholder="Bogotá" />
+    </div>
     <div class="field field-small">
       <label for="year">Año</label>
       <input id="year" name="year" type="number" inputmode="numeric" value="{{if .Filters.Year}}{{.Filters.Year}}{{end}}" placeholder="2013" />

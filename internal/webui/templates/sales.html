@@ -17,6 +17,10 @@
       <label for="q">Buscar en el catálogo</label>
       <input id="q" name="q" type="search" value="{{.Query}}" placeholder="Marca, modelo, año o descripción" />
     </div>
+    <div class="field">
+      <label for="city">Ciudad</label>
+      <input id="city" name="city" type="text" value="{{.City}}" placeholder="Bogotá" />
+    </div>
     <div class="field field-small">
       <label for="year">Año</label>
       <input id="year" name="year" type="number" inputmode="numeric" value="{{.Year}}" placeholder="2013" />
@@ -41,7 +45,7 @@
       <div class="table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>Vehículo</th><th>Año</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr>
+            <tr><th>Vehículo</th><th>Año</th><th>Ciudad</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr>
           </thead>
           <tbody>
             {{range .Mine}}
@@ -50,6 +54,7 @@
                   {{if eq .Status "active"}}<a href="{{.PublicURL}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}
                 </td>
                 <td>{{.Year}}</td>
+                <td>{{.City}}</td>
                 <td>{{.Price}}</td>
                 <td><span class="badge badge-{{.Status}}">{{.StatusLabel}}</span></td>
                 <td class="table-actions">
@@ -85,7 +90,7 @@
         </nav>
       {{end}}
     {{else}}
-      {{template "empty-catalog" .}}
+      {{if .Filters.HasFilters}}{{template "no-results" .}}{{else}}{{template "empty-catalog" .}}{{end}}
     {{end}}
   </section>
 </main>

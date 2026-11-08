@@ -102,8 +102,9 @@ Las tablas se crean automáticamente al arrancar. Si defines `ADMIN_EMAIL` y `AD
 
 ## Flujos principales
 
-- Los visitantes consultan `/cars`, buscan por texto/año/precio y abren `/cars/:id` sin sesión.
-- Los vendedores publican en `/seller/publicar`; las fotografías JPEG/PNG se validan, normalizan y guardan en PostgreSQL, con máximo 6 archivos de 5 MiB.
+- Los visitantes consultan `/cars`, buscan por texto/ciudad/año/precio y abren `/cars/:id` sin sesión. La ciudad se compara sin distinguir mayúsculas y se conserva en la paginación.
+- Los vendedores publican en `/seller/publicar` con ciudad obligatoria de hasta 80 caracteres; las fotografías JPEG/PNG se validan, normalizan y guardan en PostgreSQL, con máximo 6 archivos de 5 MiB.
+- El detalle muestra las fotografías en un visor modal: se abre desde la foto principal o miniaturas, se navega con anterior/siguiente o las flechas, y se cierra con `Esc` o `Cerrar`. Sin JavaScript, las fotos abren en la misma pestaña.
 - `/seller/ventas` combina el catálogo activo con las publicaciones propias, incluidas las retiradas lógicamente.
 - `/mensajes` conserva conversaciones por publicación; los administradores pueden leerlas, pero no responder.
 - `/admin/moderacion` permite retirar publicaciones con razón obligatoria y conserva auditoría.

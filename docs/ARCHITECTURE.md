@@ -72,12 +72,16 @@ Tablas:
 
 - `users`: cuenta, hash de contraseña y rol.
 - `sessions`: fingerprint del token, usuario, creación y expiración.
-- `cars`: publicación, precio entero en COP, estado (`active`, `withdrawn`, `removed`), propietario y ventana de edición.
+- `cars`: publicación, ciudad de texto (`city TEXT NOT NULL DEFAULT ''`), precio entero en COP, estado (`active`, `withdrawn`, `removed`), propietario y ventana de edición. Las publicaciones heredadas con ciudad vacía se muestran como “Ciudad no especificada”.
 - `car_photos`: metadatos y contenido JPEG normalizado en `BYTEA`; los listados solo consultan metadatos.
 - `conversations` y `messages`: conversaciones únicas por `(car_id, buyer_id)` y mensajes con lectura.
 - `moderation_logs`: auditoría de retiradas administrativas.
 
 No hay almacenamiento en memoria en el camino de producción.
+
+El catálogo y Ventas normalizan `?city=` colapsando espacios y aplican un filtro exacto sin distinguir mayúsculas junto con texto, año y rango de precio; la paginación conserva todos los criterios.
+
+El detalle renderiza las fotografías como enlaces a `/photos/:id` y añade un visor modal accesible con JavaScript progresivo: anterior/siguiente, `Esc`, cierre por fondo, foco atrapado y restaurado, y contador anunciado. Sin JavaScript, el enlace abre la foto en la misma pestaña.
 
 Las publicaciones usan borrado lógico para conservar conversaciones y evidencia. El catálogo, el detalle público, la búsqueda y el endpoint de fotos solo exponen publicaciones activas; el propietario y el administrador pueden consultar fotos de publicaciones no activas según sus permisos.
 

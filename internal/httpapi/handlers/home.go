@@ -36,6 +36,7 @@ func (h *PageHandler) Home(c *gin.Context) { h.Catalog(c) }
 func (h *PageHandler) Catalog(c *gin.Context) {
 	raw := domain.SearchQuery{
 		Q:        c.Query("q"),
+		City:     c.Query("city"),
 		Year:     c.Query("year"),
 		MinPrice: c.Query("min"),
 		MaxPrice: c.Query("max"),
@@ -86,8 +87,9 @@ func (h *PageHandler) Detail(c *gin.Context) {
 	}
 	for index, photo := range car.Photos {
 		page.Photos = append(page.Photos, views.PhotoView{
-			ID:  photo.ID,
-			Alt: car.Title() + " fotografía " + itoa(index+1),
+			ID:    photo.ID,
+			Alt:   car.Title() + " fotografía " + itoa(index+1),
+			Index: index,
 		})
 	}
 	if user != nil && user.ID == car.SellerID {

@@ -27,6 +27,8 @@ var (
 	ErrBrandTooLong     = errors.New("brand is too long")
 	ErrModelRequired    = errors.New("model is required")
 	ErrModelTooLong     = errors.New("model is too long")
+	ErrCityRequired     = errors.New("city is required")
+	ErrCityTooLong      = errors.New("city is too long")
 	ErrYearInvalid      = errors.New("year is invalid")
 	ErrDescriptionLong  = errors.New("description is too long")
 	ErrPriceRequired    = errors.New("price is required")
@@ -36,13 +38,13 @@ var (
 	ErrDuplicate        = errors.New("duplicate submission")
 
 	// Photo errors.
-	ErrPhotoRequired      = errors.New("at least one photo is required")
-	ErrPhotosTooMany      = errors.New("too many photos")
-	ErrPhotoTooLarge      = errors.New("photo is too large")
-	ErrPhotoTypeInvalid   = errors.New("photo type is not allowed")
-	ErrPhotoDimensions    = errors.New("photo dimensions are invalid")
-	ErrPhotoDecodeFailed  = errors.New("photo could not be decoded")
-	ErrPhotoWriteFailed   = errors.New("photo could not be stored")
+	ErrPhotoRequired     = errors.New("at least one photo is required")
+	ErrPhotosTooMany     = errors.New("too many photos")
+	ErrPhotoTooLarge     = errors.New("photo is too large")
+	ErrPhotoTypeInvalid  = errors.New("photo type is not allowed")
+	ErrPhotoDimensions   = errors.New("photo dimensions are invalid")
+	ErrPhotoDecodeFailed = errors.New("photo could not be decoded")
+	ErrPhotoWriteFailed  = errors.New("photo could not be stored")
 
 	// Messaging errors.
 	ErrMessageEmpty     = errors.New("message is empty")

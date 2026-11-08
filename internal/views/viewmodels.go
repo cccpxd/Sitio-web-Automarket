@@ -47,6 +47,7 @@ type HomePage struct {
 	PrevURL  string
 	NextURL  string
 	Query    string
+	City     string
 }
 
 // CatalogPage is the public catalog and search result page.
@@ -57,6 +58,7 @@ type CarCard struct {
 	ID          string
 	Title       string
 	Year        int
+	City        string
 	Description string
 	Price       string
 	CoverID     string
@@ -70,8 +72,9 @@ type CarCard struct {
 
 // PhotoView is a public photo reference.
 type PhotoView struct {
-	ID  string
-	Alt string
+	ID    string
+	Alt   string
+	Index int
 }
 
 // CarDetailPage shows a single active listing.
@@ -100,6 +103,7 @@ type CarView struct {
 	Model       string
 	Title       string
 	Year        int
+	City        string
 	Description string
 	Price       string
 	PriceCents  int64
@@ -115,9 +119,11 @@ type CarView struct {
 type SalesPage struct {
 	BasePage
 	Result   domain.SearchResult
+	Filters  domain.SearchFilters
 	Cards    []CarCard
 	Mine     []MyListing
 	Query    string
+	City     string
 	Year     string
 	MinPrice string
 	MaxPrice string
@@ -130,6 +136,7 @@ type MyListing struct {
 	ID          string
 	Title       string
 	Year        int
+	City        string
 	Price       string
 	Status      domain.CarStatus
 	StatusLabel string
@@ -143,6 +150,7 @@ type MyListing struct {
 type CarForm struct {
 	Brand       string
 	Model       string
+	City        string
 	Year        string
 	Price       string
 	Description string
@@ -280,6 +288,7 @@ func NewCarCard(car domain.Car, now time.Time) CarCard {
 		ID:          car.ID,
 		Title:       car.Title(),
 		Year:        car.Year,
+		City:        displayCity(car.City),
 		Description: car.Description,
 		Price:       domain.FormatCOP(car.PriceCents),
 		Status:      car.Status,
@@ -300,6 +309,7 @@ func NewMyListing(car domain.Car, now time.Time) MyListing {
 		ID:          car.ID,
 		Title:       car.Title(),
 		Year:        car.Year,
+		City:        displayCity(car.City),
 		Price:       domain.FormatCOP(car.PriceCents),
 		Status:      car.Status,
 		StatusLabel: StatusLabel(car.Status),
@@ -316,6 +326,7 @@ func NewCarView(car domain.Car) CarView {
 		ID:          car.ID,
 		Brand:       car.Brand,
 		Model:       car.Model,
+		City:        displayCity(car.City),
 		Title:       car.Title(),
 		Year:        car.Year,
 		Description: car.Description,
@@ -329,8 +340,9 @@ func NewCarView(car domain.Car) CarView {
 	}
 	for index, photo := range car.Photos {
 		view.Photos = append(view.Photos, PhotoView{
-			ID:  photo.ID,
-			Alt: fmt.Sprintf("%s %s, fotografía %d", car.Brand, car.Model, index+1),
+			ID:    photo.ID,
+			Alt:   fmt.Sprintf("%s %s, fotografía %d", car.Brand, car.Model, index+1),
+			Index: index,
 		})
 	}
 	return view
@@ -383,6 +395,7 @@ func NewCatalogPage(csrf string, user *domain.User, result domain.SearchResult, 
 		Result:   result,
 		Filters:  filters,
 		Query:    filters.Query,
+		City:     filters.City,
 	}
 	if filters.MinPriceCents > 0 {
 		page.MinPrice = domain.FormatCOPAmount(filters.MinPriceCents)
@@ -406,9 +419,13 @@ func paginationURL(filters domain.SearchFilters, page int) string {
 	if filters.Year > 0 {
 		values.Set("year", strconv.Itoa(filters.Year))
 	}
+	if filters.City != "" {
+		values.Set("city", filters.City)
+	}
 	if filters.MinPriceCents > 0 {
 		values.Set("min", domain.FormatCOPAmount(filters.MinPriceCents))
 	}
+
 	if filters.MaxPriceCents > 0 {
 		values.Set("max", domain.FormatCOPAmount(filters.MaxPriceCents))
 	}
@@ -419,6 +436,13 @@ func paginationURL(filters domain.SearchFilters, page int) string {
 		return "/cars"
 	}
 	return "/cars?" + values.Encode()
+}
+
+func displayCity(city string) string {
+	if city == "" {
+		return "Ciudad no especificada"
+	}
+	return city
 }
 
 // StatusLabel returns the Spanish label for a listing status.

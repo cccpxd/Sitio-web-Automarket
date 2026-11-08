@@ -40,4 +40,4 @@ El runtime Go de Vercel está disponible como Framework Preset (Beta), detecta `
 - **A favor:** un solo despliegue, datos persistentes, secretos fuera del código, assets autocontenidos, capas testeables sin PostgreSQL/Gin y separación estructural explícita.
 - **En contra:** el preset Go está en Beta; hay cold starts; PBKDF2 consume CPU; la concurrencia obliga a cuidar el pool de conexiones; se depende de un PostgreSQL externo; la región de la función debe acercarse a la de la base de datos.
 - **Operación:** la migración y el bootstrap corren en cada arranque, pero son idempotentes. La limpieza de sesiones es oportunista en login; para alto volumen se recomienda un cron.
-- **Seguridad pendiente:** CSRF explícito, rate limiting, verificación de email, recuperación de contraseña y MFA no forman parte de este cambio.
+- **Seguridad fuera de alcance:** rate limiting, verificación de email, recuperación de contraseña y MFA siguen pendientes. Los formularios del marketplace ya usan CSRF de doble envío y las operaciones sensibles requieren POST.

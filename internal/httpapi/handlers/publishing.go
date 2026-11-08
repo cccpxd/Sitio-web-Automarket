@@ -65,6 +65,7 @@ func (h *PublishingHandler) Create(c *gin.Context) {
 		Model:       form.Model,
 		Year:        parseYear(form.Year),
 		Description: form.Description,
+		City:        form.City,
 		Price:       form.Price,
 		ClientToken: form.ClientToken,
 		Photos:      photos,
@@ -106,6 +107,7 @@ func (h *PublishingHandler) EditForm(c *gin.Context) {
 		Form: views.CarForm{
 			Brand:       car.Brand,
 			Model:       car.Model,
+			City:        car.City,
 			Year:        strconv.Itoa(car.Year),
 			Price:       domain.FormatCOPAmount(car.PriceCents),
 			Description: car.Description,
@@ -145,6 +147,7 @@ func (h *PublishingHandler) Update(c *gin.Context) {
 		Model:       form.Model,
 		Year:        parseYear(form.Year),
 		Description: form.Description,
+		City:        form.City,
 		Price:       form.Price,
 		Photos:      photos,
 	})
@@ -189,6 +192,7 @@ func (h *PublishingHandler) Sales(c *gin.Context) {
 	if h.catalog != nil {
 		catalogResult, err := h.catalog.Search(c.Request.Context(), domain.SearchQuery{
 			Q:        c.Query("q"),
+			City:     c.Query("city"),
 			Year:     c.Query("year"),
 			MinPrice: c.Query("min"),
 			MaxPrice: c.Query("max"),
@@ -205,13 +209,15 @@ func (h *PublishingHandler) Sales(c *gin.Context) {
 		BasePage: views.NewBasePage(httpapi.CSRFToken(c), &user, "Ventas", "sales"),
 		Result:   result,
 		Query:    c.Query("q"),
+		City:     c.Query("city"),
 		Year:     c.Query("year"),
 		MinPrice: c.Query("min"),
 		MaxPrice: c.Query("max"),
 	}
 	if filters, filterErr := domain.NormalizeSearchFilters(domain.SearchQuery{
-		Q: c.Query("q"), Year: c.Query("year"), MinPrice: c.Query("min"), MaxPrice: c.Query("max"), Page: c.Query("page"),
+		Q: c.Query("q"), City: c.Query("city"), Year: c.Query("year"), MinPrice: c.Query("min"), MaxPrice: c.Query("max"), Page: c.Query("page"),
 	}); filterErr == nil {
+		page.Filters = filters
 		page.PrevURL = salesPaginationURL(filters, result.Page-1)
 		page.NextURL = salesPaginationURL(filters, result.Page+1)
 	} else {
@@ -246,6 +252,9 @@ func salesPaginationURL(filters domain.SearchFilters, page int) string {
 	}
 	if filters.Year > 0 {
 		values = append(values, "year="+strconv.Itoa(filters.Year))
+	}
+	if filters.City != "" {
+		values = append(values, "city="+url.QueryEscape(filters.City))
 	}
 	if filters.MinPriceCents > 0 {
 		values = append(values, "min="+url.QueryEscape(domain.FormatCOPAmount(filters.MinPriceCents)))
@@ -307,6 +316,7 @@ func readCarForm(c *gin.Context) views.CarForm {
 	return views.CarForm{
 		Brand:       strings.TrimSpace(c.PostForm("brand")),
 		Model:       strings.TrimSpace(c.PostForm("model")),
+		City:        strings.TrimSpace(c.PostForm("city")),
 		Year:        strings.TrimSpace(c.PostForm("year")),
 		Price:       strings.TrimSpace(c.PostForm("price")),
 		Description: strings.TrimSpace(c.PostForm("description")),
@@ -366,6 +376,10 @@ func applyFieldErrors(page *views.PublishPage, err error) {
 		page.Errors["brand"] = "Indica una marca válida."
 	case errors.Is(err, domain.ErrModelRequired), errors.Is(err, domain.ErrModelTooLong):
 		page.Errors["model"] = "Indica un modelo válido."
+	case errors.Is(err, domain.ErrCityRequired):
+		page.Errors["city"] = "Indica una ciudad."
+	case errors.Is(err, domain.ErrCityTooLong):
+		page.Errors["city"] = "La ciudad no puede superar 80 caracteres."
 	case errors.Is(err, domain.ErrYearInvalid):
 		page.Errors["year"] = "El año debe estar entre 1900 y el próximo año."
 	case errors.Is(err, domain.ErrPriceRequired), errors.Is(err, domain.ErrPriceInvalid):
@@ -397,6 +411,10 @@ func publishErrorMessage(err error) string {
 		return "La publicación no existe."
 	case errors.Is(err, domain.ErrBrandRequired), errors.Is(err, domain.ErrModelRequired):
 		return "Completa la marca y el modelo."
+	case errors.Is(err, domain.ErrCityRequired):
+		return "Completa la ciudad."
+	case errors.Is(err, domain.ErrCityTooLong):
+		return "La ciudad no puede superar 80 caracteres."
 	case errors.Is(err, domain.ErrYearInvalid):
 		return "El año debe estar entre 1900 y el próximo año."
 	case errors.Is(err, domain.ErrPriceRequired), errors.Is(err, domain.ErrPriceInvalid):
@@ -432,6 +450,7 @@ func publishStatus(err error) int {
 		return http.StatusRequestEntityTooLarge
 	case errors.Is(err, domain.ErrBrandRequired), errors.Is(err, domain.ErrBrandTooLong),
 		errors.Is(err, domain.ErrModelRequired), errors.Is(err, domain.ErrModelTooLong),
+		errors.Is(err, domain.ErrCityRequired), errors.Is(err, domain.ErrCityTooLong),
 		errors.Is(err, domain.ErrYearInvalid), errors.Is(err, domain.ErrPriceRequired),
 		errors.Is(err, domain.ErrPriceInvalid), errors.Is(err, domain.ErrDescriptionLong),
 		errors.Is(err, domain.ErrPhotoRequired), errors.Is(err, domain.ErrPhotosTooMany),

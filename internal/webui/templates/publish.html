@@ -37,6 +37,11 @@
         <input id="price" name="price" type="text" inputmode="numeric" value="{{.Form.Price}}" placeholder="45.000.000" required />
         {{if .Errors.price}}<p class="field-error">{{.Errors.price}}</p>{{end}}
       </div>
+      <div class="field">
+        <label for="city">Ciudad</label>
+        <input id="city" name="city" type="text" maxlength="80" value="{{.Form.City}}" required />
+        {{if .Errors.city}}<p class="field-error">{{.Errors.city}}</p>{{end}}
+      </div>
     </div>
 
     <div class="field">

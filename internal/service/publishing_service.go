@@ -12,6 +12,7 @@ import (
 type CreateCarInput struct {
 	Brand       string
 	Model       string
+	City        string
 	Year        int
 	Description string
 	Price       string
@@ -23,6 +24,7 @@ type CreateCarInput struct {
 type UpdateCarInput struct {
 	Brand       string
 	Model       string
+	City        string
 	Year        int
 	Description string
 	Price       string
@@ -32,19 +34,19 @@ type UpdateCarInput struct {
 // PublishingService enforces listing validation, the ten-minute edit window,
 // seller ownership, withdrawal and idempotent creation.
 type PublishingService struct {
-	cars    CarWriteStore
-	reader  CarListStore
-	photos  PhotoProcessor
-	ids     IDGenerator
-	clock   Clock
+	cars   CarWriteStore
+	reader CarListStore
+	photos PhotoProcessor
+	ids    IDGenerator
+	clock  Clock
 }
 
 type PublishingServiceDeps struct {
-	Cars    CarWriteStore
-	Reader  CarListStore
-	Photos  PhotoProcessor
-	IDs     IDGenerator
-	Clock   Clock
+	Cars   CarWriteStore
+	Reader CarListStore
+	Photos PhotoProcessor
+	IDs    IDGenerator
+	Clock  Clock
 }
 
 func NewPublishingService(deps PublishingServiceDeps) (*PublishingService, error) {
@@ -69,6 +71,7 @@ func (s *PublishingService) Create(ctx context.Context, sellerID string, input C
 	details, err := domain.NormalizeCarInput(domain.CarInput{
 		Brand:       input.Brand,
 		Model:       input.Model,
+		City:        input.City,
 		Year:        input.Year,
 		Description: input.Description,
 		Price:       input.Price,
@@ -88,6 +91,7 @@ func (s *PublishingService) Create(ctx context.Context, sellerID string, input C
 		ID:          carID,
 		Brand:       details.Brand,
 		Model:       details.Model,
+		City:        details.City,
 		Year:        details.Year,
 		Description: details.Description,
 		PriceCents:  details.PriceCents,
@@ -152,6 +156,7 @@ func (s *PublishingService) Update(ctx context.Context, sellerID, carID string, 
 	details, err := domain.NormalizeCarInput(domain.CarInput{
 		Brand:       input.Brand,
 		Model:       input.Model,
+		City:        input.City,
 		Year:        input.Year,
 		Description: input.Description,
 		Price:       input.Price,
@@ -180,6 +185,7 @@ func (s *PublishingService) Update(ctx context.Context, sellerID, carID string, 
 	updated := existing
 	updated.Brand = details.Brand
 	updated.Model = details.Model
+	updated.City = details.City
 	updated.Year = details.Year
 	updated.Description = details.Description
 	updated.PriceCents = details.PriceCents

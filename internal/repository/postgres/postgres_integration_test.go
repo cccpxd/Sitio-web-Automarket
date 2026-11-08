@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -138,7 +139,7 @@ func assertSchema(t *testing.T, ctx context.Context, db *sql.DB) {
 		}
 	}
 	var nullable string
-	for _, column := range []string{"seller_id", "price_cents"} {
+	for _, column := range []string{"seller_id", "price_cents", "city"} {
 		if err := db.QueryRowContext(ctx, `
 			SELECT is_nullable FROM information_schema.columns
 			WHERE table_schema = 'public' AND table_name = 'cars' AND column_name = $1`, column).Scan(&nullable); err != nil {
@@ -147,6 +148,15 @@ func assertSchema(t *testing.T, ctx context.Context, db *sql.DB) {
 		if nullable != "NO" {
 			t.Fatalf("cars.%s is nullable", column)
 		}
+	}
+	var defaultValue sql.NullString
+	if err := db.QueryRowContext(ctx, `
+		SELECT column_default FROM information_schema.columns
+		WHERE table_schema = 'public' AND table_name = 'cars' AND column_name = 'city'`).Scan(&defaultValue); err != nil {
+		t.Fatalf("check cars.city default: %v", err)
+	}
+	if !defaultValue.Valid || !strings.Contains(defaultValue.String, "''::text") {
+		t.Fatalf("cars.city default = %q", defaultValue.String)
 	}
 }
 
