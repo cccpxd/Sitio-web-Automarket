@@ -11,17 +11,18 @@
 
     {{template "flash" .}}
 
-    <form method="post" action="/admin/publicaciones/{{.Car.ID}}/retirar">
+    <form method="post" action="/admin/publicaciones/{{.Car.ID}}/retirar" data-confirm="¿Confirmas retirar esta publicación? La acción quedará registrada.">
       {{template "csrf" .}}
       <div class="field">
         <label for="reason">Razón de la retirada (obligatoria)</label>
         <textarea id="reason" name="reason" rows="4" maxlength="500" required>{{.Reason}}</textarea>
       </div>
       <div class="form-actions">
-        <button class="btn btn-danger" type="submit" onclick="return confirm('¿Confirmas retirar esta publicación? La acción quedará registrada.');">Confirmar retirada</button>
+        <button class="btn btn-danger" type="submit">Confirmar retirada</button>
         <a class="btn btn-secondary" href="/admin/moderacion">Cancelar</a>
       </div>
     </form>
   </div>
 </main>
+<script src="/static/js/confirm-actions.js" defer></script>
 {{template "footer" .}}
