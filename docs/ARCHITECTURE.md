@@ -72,10 +72,10 @@ Tablas:
 
 - `users`: cuenta, hash de contraseña y rol.
 - `sessions`: fingerprint del token, usuario, creación y expiración.
-- `cars`: publicación, ciudad de texto (`city TEXT NOT NULL DEFAULT ''`), precio entero en COP, estado (`active`, `withdrawn`, `removed`), propietario y ventana de edición. Las publicaciones heredadas con ciudad vacía se muestran como “Ciudad no especificada”.
+- `cars`: publicación, ciudad de texto (`city TEXT NOT NULL DEFAULT ''`), precio entero en COP, estado (`pending`, `active`, `rejected`, `withdrawn`, `removed`), propietario y ventana de edición. Las publicaciones heredadas con ciudad vacía se muestran como “Ciudad no especificada”; las existentes permanecen `active` sin revisión retroactiva.
 - `car_photos`: metadatos y contenido JPEG normalizado en `BYTEA`; los listados solo consultan metadatos.
 - `conversations` y `messages`: conversaciones únicas por `(car_id, buyer_id)` y mensajes con lectura.
-- `moderation_logs`: auditoría de retiradas administrativas.
+- `moderation_logs`: auditoría de acciones administrativas (`approved`, `rejected`, `removed`), con razón obligatoria salvo para aprobaciones.
 
 No hay almacenamiento en memoria en el camino de producción.
 
@@ -83,7 +83,7 @@ El catálogo y Ventas normalizan `?city=` colapsando espacios y aplican un filtr
 
 El detalle renderiza las fotografías como enlaces a `/photos/:id` y añade un visor modal accesible con JavaScript progresivo: anterior/siguiente, `Esc`, cierre por fondo, foco atrapado y restaurado, y contador anunciado. Sin JavaScript, el enlace abre la foto en la misma pestaña.
 
-Las publicaciones usan borrado lógico para conservar conversaciones y evidencia. El catálogo, el detalle público, la búsqueda y el endpoint de fotos solo exponen publicaciones activas; el propietario y el administrador pueden consultar fotos de publicaciones no activas según sus permisos.
+Las publicaciones usan borrado lógico para conservar conversaciones y evidencia. El catálogo, el detalle público, la búsqueda y el endpoint de fotos solo exponen publicaciones `active`; el propietario y el administrador pueden consultar publicaciones y fotos `pending` o `rejected` según sus permisos. Las publicaciones nuevas y las editadas esperan aprobación antes de volver al catálogo.
 
 ## Rutas y autorización
 
@@ -92,7 +92,7 @@ Las publicaciones usan borrado lógico para conservar conversaciones y evidencia
 | `/`, `/cars`, `/cars/:id`, `/photos/:id` activos | Leer | Leer | Leer |
 | `/seller/publicar`, `/seller/ventas`, edición y retirada propia | — | Propietario | — |
 | `/mensajes` y conversaciones participantes | — | Participante | Lectura, sin responder |
-| `/admin/moderacion` y retirada administrativa | — | — | Administrador |
+| `/admin/moderacion`, aprobar/rechazar y retirada administrativa | — | — | Administrador |
 | `/login`, `/register` y `/logout` | Sí | Sí | Sí |
 
 Las rutas POST pasan por CSRF de doble envío. La autorización se aplica en middleware y se repite en los servicios/repositorios para impedir que una llamada directa al endpoint salte la propiedad o el rol.

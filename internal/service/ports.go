@@ -90,6 +90,8 @@ type ConversationStore interface {
 // ModerationStore is the persistence port for administrative removals.
 type ModerationStore interface {
 	RemoveWithAudit(ctx context.Context, entry domain.ModerationEntry) error
+	ApproveWithAudit(ctx context.Context, entry domain.ModerationEntry) error
+	RejectWithAudit(ctx context.Context, entry domain.ModerationEntry) error
 	List(ctx context.Context) ([]domain.ModerationEntry, error)
 }
 

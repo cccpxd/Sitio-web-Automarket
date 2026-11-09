@@ -5,11 +5,39 @@
     <div>
       <p class="eyebrow">Administración</p>
       <h1>Moderación de publicaciones</h1>
-      <p class="muted">La retirada exige una razón y queda registrada de forma permanente.</p>
+      <p class="muted">Las publicaciones nuevas requieren aprobación. Todas las decisiones quedan registradas.</p>
     </div>
   </div>
 
   {{template "flash" .}}
+
+  <section class="section-block">
+    <h2>Pendientes de aprobación</h2>
+    {{if .Pending}}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Vehículo</th><th>Vendedor</th><th>Fecha</th><th>Acciones</th></tr></thead>
+          <tbody>
+            {{range .Pending}}
+              <tr>
+                <td><a href="/cars/{{.ID}}">{{.Title}}</a></td>
+                <td>{{.SellerName}}</td>
+                <td>{{.CreatedAt.Format "02/01/2006 15:04"}}</td>
+                <td class="table-actions">
+                  <form method="post" action="/admin/publicaciones/{{.ID}}/aprobar" class="inline-form">
+                    {{template "csrf" $}}<button class="btn btn-small btn-primary" type="submit">Aprobar</button>
+                  </form>
+                  <a class="btn btn-small btn-danger" href="/admin/publicaciones/{{.ID}}/rechazar">Rechazar</a>
+                </td>
+              </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    {{else}}
+      <p class="muted">No hay publicaciones pendientes de aprobación.</p>
+    {{end}}
+  </section>
 
   <section class="section-block">
     <h2>Publicaciones</h2>
@@ -22,11 +50,14 @@
           <tbody>
             {{range .Cars}}
               <tr>
-                <td>{{if eq .Status "active"}}<a href="/cars/{{.ID}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}</td>
+                <td><a href="/cars/{{.ID}}">{{.Title}}</a></td>
                 <td>{{.Year}}</td>
                 <td>{{.Price}}</td>
                 <td><span class="badge badge-{{.Status}}">{{.StatusLabel}}</span></td>
                 <td>
+                  {{if eq .Status "active"}}
+                    <a class="btn btn-small btn-danger" href="/admin/publicaciones/{{.ID}}/rechazar">Rechazar</a>
+                  {{end}}
                   {{if ne .Status "removed"}}
                     <a class="btn btn-small btn-danger" href="/admin/publicaciones/{{.ID}}/retirar">Retirar</a>
                   {{else}}
@@ -49,7 +80,7 @@
       <div class="table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>Fecha</th><th>Administrador</th><th>Publicación</th><th>Razón</th></tr>
+            <tr><th>Fecha</th><th>Administrador</th><th>Publicación</th><th>Acción</th><th>Razón</th></tr>
           </thead>
           <tbody>
             {{range .Entries}}
@@ -57,7 +88,8 @@
                 <td>{{.CreatedAt.Format "02/01/2006 15:04"}}</td>
                 <td>{{.AdminName}}</td>
                 <td>{{.CarTitle}}</td>
-                <td>{{.Reason}}</td>
+                <td>{{.Action}}</td>
+                <td>{{if ne .Action "approved"}}{{.Reason}}{{end}}</td>
               </tr>
             {{end}}
           </tbody>

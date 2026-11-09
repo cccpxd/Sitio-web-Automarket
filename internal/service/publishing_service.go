@@ -96,7 +96,7 @@ func (s *PublishingService) Create(ctx context.Context, sellerID string, input C
 		Description: details.Description,
 		PriceCents:  details.PriceCents,
 		SellerID:    sellerID,
-		Status:      domain.CarStatusActive,
+		Status:      domain.CarStatusPending,
 		CreatedAt:   now,
 	}
 
@@ -145,11 +145,11 @@ func (s *PublishingService) Update(ctx context.Context, sellerID, carID string, 
 	if existing.SellerID != sellerID {
 		return domain.Car{}, domain.ErrForbidden
 	}
-	if existing.Status != domain.CarStatusActive {
-		return domain.Car{}, domain.ErrConflict
-	}
 	now := s.clock.Now()
-	if now.After(existing.CreatedAt.Add(domain.EditWindow)) {
+	if !existing.CanEdit(now) {
+		if existing.Status == domain.CarStatusWithdrawn || existing.Status == domain.CarStatusRemoved {
+			return domain.Car{}, domain.ErrConflict
+		}
 		return domain.Car{}, domain.ErrEditWindowClosed
 	}
 
@@ -189,6 +189,7 @@ func (s *PublishingService) Update(ctx context.Context, sellerID, carID string, 
 	updated.Year = details.Year
 	updated.Description = details.Description
 	updated.PriceCents = details.PriceCents
+	updated.Status = domain.CarStatusPending
 	updated.EditedAt = &editedAt
 	if replacePhotos {
 		updated.Photos = photos

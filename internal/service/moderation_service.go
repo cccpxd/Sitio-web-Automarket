@@ -46,9 +46,42 @@ func (s *ModerationService) Remove(ctx context.Context, adminID, carID, reason s
 		AdminID:   adminID,
 		CarID:     carID,
 		Reason:    normalized,
+		Action:    domain.ModerationActionRemoved,
 		CreatedAt: s.clock.Now(),
 	}
 	return s.store.RemoveWithAudit(ctx, entry)
+}
+
+func (s *ModerationService) Approve(ctx context.Context, adminID, carID string) error {
+	if adminID == "" {
+		return domain.ErrForbidden
+	}
+	entryID, err := s.ids.New()
+	if err != nil {
+		return err
+	}
+	return s.store.ApproveWithAudit(ctx, domain.ModerationEntry{
+		ID: entryID, AdminID: adminID, CarID: carID,
+		Action: domain.ModerationActionApproved, CreatedAt: s.clock.Now(),
+	})
+}
+
+func (s *ModerationService) Reject(ctx context.Context, adminID, carID, reason string) error {
+	if adminID == "" {
+		return domain.ErrForbidden
+	}
+	normalized, err := domain.NormalizeModerationReason(reason)
+	if err != nil {
+		return err
+	}
+	entryID, err := s.ids.New()
+	if err != nil {
+		return err
+	}
+	return s.store.RejectWithAudit(ctx, domain.ModerationEntry{
+		ID: entryID, AdminID: adminID, CarID: carID, Reason: normalized,
+		Action: domain.ModerationActionRejected, CreatedAt: s.clock.Now(),
+	})
 }
 
 // List returns the historical moderation log.

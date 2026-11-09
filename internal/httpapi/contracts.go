@@ -62,6 +62,8 @@ type MessagingService interface {
 // ModerationService is the administrative removal port.
 type ModerationService interface {
 	Remove(ctx context.Context, adminID, carID, reason string) error
+	Approve(ctx context.Context, adminID, carID string) error
+	Reject(ctx context.Context, adminID, carID, reason string) error
 	List(ctx context.Context) ([]domain.ModerationEntry, error)
 }
 

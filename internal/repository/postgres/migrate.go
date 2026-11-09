@@ -85,9 +85,19 @@ var migrationStatements = []string{
 		id TEXT PRIMARY KEY,
 		admin_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
 		car_id TEXT NOT NULL REFERENCES cars(id) ON DELETE RESTRICT,
-		reason TEXT NOT NULL CHECK (length(btrim(reason)) > 0),
+		reason TEXT NOT NULL,
+		action TEXT NOT NULL DEFAULT 'removed',
 		created_at TIMESTAMPTZ NOT NULL
 	)`,
+	`ALTER TABLE moderation_logs ADD COLUMN IF NOT EXISTS action TEXT NOT NULL DEFAULT 'removed'`,
+	`ALTER TABLE moderation_logs DROP CONSTRAINT IF EXISTS moderation_logs_reason_check`,
+	`DO $$
+	 BEGIN
+	   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'moderation_logs_reason_check') THEN
+	     ALTER TABLE moderation_logs ADD CONSTRAINT moderation_logs_reason_check
+	       CHECK (action = 'approved' OR length(btrim(reason)) > 0);
+	   END IF;
+	 END $$`,
 	`CREATE INDEX IF NOT EXISTS moderation_logs_car_id_idx ON moderation_logs (car_id)`,
 	`CREATE INDEX IF NOT EXISTS moderation_logs_created_at_idx ON moderation_logs (created_at DESC)`,
 
@@ -112,10 +122,11 @@ var migrationStatements = []string{
 	`ALTER TABLE cars ALTER COLUMN seller_id SET NOT NULL`,
 	`ALTER TABLE cars ALTER COLUMN price_cents SET NOT NULL`,
 
+	`ALTER TABLE cars DROP CONSTRAINT IF EXISTS cars_status_check`,
 	`DO $$
 	 BEGIN
 	   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'cars_status_check') THEN
-	     ALTER TABLE cars ADD CONSTRAINT cars_status_check CHECK (status IN ('active', 'withdrawn', 'removed'));
+	     ALTER TABLE cars ADD CONSTRAINT cars_status_check CHECK (status IN ('pending', 'active', 'rejected', 'withdrawn', 'removed'));
 	   END IF;
 	 END $$`,
 	`DO $$

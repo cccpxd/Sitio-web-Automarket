@@ -142,7 +142,7 @@ func TestCatalogAndPublishingServices(t *testing.T) {
 		Brand: "Mazda", Model: "3", City: "Bogotá", Year: 2020, Price: "45.000.000", ClientToken: "token-1",
 		Photos: []RawPhoto{{Name: "car.jpg", Data: []byte("photo")}},
 	})
-	if err != nil || car.Status != domain.CarStatusActive || store.created != 1 {
+	if err != nil || car.Status != domain.CarStatusPending || store.created != 1 {
 		t.Fatalf("created car = %+v, %v", car, err)
 	}
 	if err := publishing.Withdraw(context.Background(), "seller-1", car.ID); err != nil || !store.withdrawn {

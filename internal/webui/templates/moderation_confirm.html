@@ -1,25 +1,25 @@
 {{template "head" .}}
 {{template "navbar" .}}
 <main class="container page">
-  <a class="back-link" href="/admin/moderacion">← Volver a moderación</a>
+  <a class="back-link" href="{{.CancelURL}}">← Volver a moderación</a>
   <div class="form-card">
-    <p class="eyebrow">Confirmar retirada</p>
+    <p class="eyebrow">{{.ActionTitle}}</p>
     <h1>{{.Car.Title}} {{.Car.Year}}</h1>
     <p class="detail-price">{{.Car.Price}}</p>
     <p>Vendedor: <strong>{{.Car.SellerName}}</strong></p>
-    <p class="muted">La publicación dejará de aparecer en el catálogo, Ventas, el detalle y la búsqueda. Sus conversaciones se conservan.</p>
+    <p class="muted">La acción quedará registrada y la publicación dejará de aparecer en el catálogo mientras no esté activa.</p>
 
     {{template "flash" .}}
 
-    <form method="post" action="/admin/publicaciones/{{.Car.ID}}/retirar" data-confirm="¿Confirmas retirar esta publicación? La acción quedará registrada.">
+    <form method="post" action="{{.ActionURL}}" data-confirm="¿Confirmas esta acción? Quedará registrada.">
       {{template "csrf" .}}
       <div class="field">
-        <label for="reason">Razón de la retirada (obligatoria)</label>
+        <label for="reason">{{.ReasonLabel}}</label>
         <textarea id="reason" name="reason" rows="4" maxlength="500" required>{{.Reason}}</textarea>
       </div>
       <div class="form-actions">
-        <button class="btn btn-danger" type="submit">Confirmar retirada</button>
-        <a class="btn btn-secondary" href="/admin/moderacion">Cancelar</a>
+        <button class="btn btn-danger" type="submit">{{.SubmitLabel}}</button>
+        <a class="btn btn-secondary" href="{{.CancelURL}}">Cancelar</a>
       </div>
     </form>
   </div>

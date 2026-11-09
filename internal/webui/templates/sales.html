@@ -51,15 +51,16 @@
             {{range .Mine}}
               <tr>
                 <td>
-                  {{if eq .Status "active"}}<a href="{{.PublicURL}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}
+                  {{if or (eq .Status "active") (eq .Status "pending") (eq .Status "rejected")}}<a href="{{.PublicURL}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}
                 </td>
                 <td>{{.Year}}</td>
                 <td>{{.City}}</td>
                 <td>{{.Price}}</td>
                 <td><span class="badge badge-{{.Status}}">{{.StatusLabel}}</span></td>
                 <td class="table-actions">
+                  {{if .RejectionReason}}<span class="field-error">{{.RejectionReason}}</span>{{end}}
                   {{if .CanEdit}}<a class="btn btn-small btn-secondary" href="{{.EditURL}}">Editar</a>{{end}}
-                  {{if eq .Status "active"}}
+                  {{if .CanWithdraw}}
                     <form method="post" action="{{.WithdrawURL}}" class="inline-form" data-confirm="¿Retirar esta publicación? Dejará de aparecer en el catálogo.">
                       {{template "csrf" $}}
                       <button type="submit" class="btn btn-small btn-danger">Retirar</button>

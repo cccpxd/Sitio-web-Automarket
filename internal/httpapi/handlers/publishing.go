@@ -60,7 +60,7 @@ func (h *PublishingHandler) Create(c *gin.Context) {
 		return
 	}
 
-	car, err := h.publishing.Create(c.Request.Context(), user.ID, service.CreateCarInput{
+	_, err = h.publishing.Create(c.Request.Context(), user.ID, service.CreateCarInput{
 		Brand:       form.Brand,
 		Model:       form.Model,
 		Year:        parseYear(form.Year),
@@ -78,7 +78,7 @@ func (h *PublishingHandler) Create(c *gin.Context) {
 		h.renderPublishForm(c, status, form, err)
 		return
 	}
-	c.Redirect(http.StatusFound, "/cars/"+car.ID)
+	c.Redirect(http.StatusFound, "/seller/ventas?pendiente=1")
 }
 
 func (h *PublishingHandler) EditForm(c *gin.Context) {
@@ -93,6 +93,10 @@ func (h *PublishingHandler) EditForm(c *gin.Context) {
 		return
 	}
 	if !car.CanEdit(h.now()) {
+		if car.Status == domain.CarStatusWithdrawn || car.Status == domain.CarStatusRemoved {
+			h.renderPublishError(c, http.StatusConflict, "La publicación fue retirada y ya no se puede editar.")
+			return
+		}
 		h.renderPublishError(c, http.StatusConflict,
 			"El plazo de edición de diez minutos ya expiró. Puedes retirar la publicación, pero no editarla.")
 		return
@@ -238,6 +242,9 @@ func (h *PublishingHandler) Sales(c *gin.Context) {
 	}
 	if c.Query("editada") == "1" {
 		page.Flash = "Los cambios se guardaron correctamente."
+	}
+	if c.Query("pendiente") == "1" {
+		page.Flash = "La publicación quedó pendiente de revisión por un administrador."
 	}
 	renderHTML(c, h.renderer, h.logger, http.StatusOK, "sales.html", page)
 }

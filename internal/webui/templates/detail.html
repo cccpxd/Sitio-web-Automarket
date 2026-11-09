@@ -2,6 +2,8 @@
 {{template "navbar" .}}
 <main class="container page">
   {{template "flash" .}}
+  {{if eq .Car.Status "pending"}}<div class="alert alert-warning" role="status">Esta publicación está pendiente de aprobación y aún no es visible para el público.</div>{{end}}
+  {{if eq .Car.Status "rejected"}}<div class="alert alert-error" role="alert"><strong>Publicación rechazada.</strong> {{.Car.RejectionReason}}</div>{{end}}
   <article class="detail">
     <div class="detail-gallery">
       {{if .Photos}}

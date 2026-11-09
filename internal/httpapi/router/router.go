@@ -109,11 +109,14 @@ func New(deps Dependencies) (*gin.Engine, error) {
 	seller.POST("/seller/publicaciones/:id/retirar", publishingHandler.Withdraw)
 
 	admin := engine.Group("/")
-	admin.Use(middleware.RequireRole(deps.Auth, deps.Cookie.Name, deps.Logger, domain.RoleAdmin))
+	admin.Use(middleware.RequireRolePage(deps.Auth, deps.Cookie.Name, deps.Logger, domain.RoleAdmin))
 	admin.GET("/admin-panel", moderationHandler.Panel)
 	admin.GET("/admin/moderacion", moderationHandler.Panel)
 	admin.GET("/admin/publicaciones/:id/retirar", moderationHandler.Confirm)
 	admin.POST("/admin/publicaciones/:id/retirar", moderationHandler.Remove)
+	admin.POST("/admin/publicaciones/:id/aprobar", moderationHandler.Approve)
+	admin.GET("/admin/publicaciones/:id/rechazar", moderationHandler.RejectConfirm)
+	admin.POST("/admin/publicaciones/:id/rechazar", moderationHandler.Reject)
 	admin.GET("/admin/conversaciones/:id", messageHandler.Thread)
 	admin.GET("/users", authHandler.ListUsers)
 

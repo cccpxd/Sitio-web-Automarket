@@ -55,19 +55,23 @@ type CatalogPage = HomePage
 
 // CarCard is the compact representation used by catalog grids.
 type CarCard struct {
-	ID          string
-	Title       string
-	Year        int
-	City        string
-	Description string
-	Price       string
-	CoverID     string
-	PhotoCount  int
-	Status      domain.CarStatus
-	StatusLabel string
-	CanEdit     bool
-	WithdrawURL string
-	PublicURL   string
+	ID              string
+	Title           string
+	Year            int
+	City            string
+	Description     string
+	Price           string
+	CoverID         string
+	PhotoCount      int
+	Status          domain.CarStatus
+	StatusLabel     string
+	RejectionReason string
+	SellerName      string
+	CreatedAt       time.Time
+	CanEdit         bool
+	CanWithdraw     bool
+	WithdrawURL     string
+	PublicURL       string
 }
 
 // PhotoView is a public photo reference.
@@ -98,21 +102,22 @@ type ContactPage struct {
 
 // CarView is the detailed public representation of a listing.
 type CarView struct {
-	ID          string
-	Brand       string
-	Model       string
-	Title       string
-	Year        int
-	City        string
-	Description string
-	Price       string
-	PriceCents  int64
-	SellerName  string
-	Status      domain.CarStatus
-	StatusLabel string
-	CreatedAt   time.Time
-	EditedAt    *time.Time
-	Photos      []PhotoView
+	ID              string
+	Brand           string
+	Model           string
+	Title           string
+	Year            int
+	City            string
+	Description     string
+	Price           string
+	PriceCents      int64
+	SellerName      string
+	Status          domain.CarStatus
+	StatusLabel     string
+	RejectionReason string
+	CreatedAt       time.Time
+	EditedAt        *time.Time
+	Photos          []PhotoView
 }
 
 // SalesPage is the seller's "Ventas" section.
@@ -133,17 +138,19 @@ type SalesPage struct {
 
 // MyListing is one of the seller's own listings, including withdrawn ones.
 type MyListing struct {
-	ID          string
-	Title       string
-	Year        int
-	City        string
-	Price       string
-	Status      domain.CarStatus
-	StatusLabel string
-	CanEdit     bool
-	PublicURL   string
-	EditURL     string
-	WithdrawURL string
+	ID              string
+	Title           string
+	Year            int
+	City            string
+	Price           string
+	Status          domain.CarStatus
+	StatusLabel     string
+	RejectionReason string
+	CanWithdraw     bool
+	CanEdit         bool
+	PublicURL       string
+	EditURL         string
+	WithdrawURL     string
 }
 
 // CarForm preserves user input across validation errors.
@@ -215,14 +222,20 @@ type MessageView struct {
 type ModerationPage struct {
 	BasePage
 	Cars    []CarCard
+	Pending []CarCard
 	Entries []domain.ModerationEntry
 }
 
-// ModerationConfirmPage asks the administrator for a mandatory reason.
+// ModerationConfirmPage is the generic administrator action form.
 type ModerationConfirmPage struct {
 	BasePage
-	Car    CarView
-	Reason string
+	Car         CarView
+	Reason      string
+	ActionTitle string
+	ActionURL   string
+	ReasonLabel string
+	SubmitLabel string
+	CancelURL   string
 }
 
 // ErrorPage is a friendly error page.
@@ -285,15 +298,19 @@ func NewRolePage(csrf string, user *domain.User, sellers []domain.User, cars []d
 
 func NewCarCard(car domain.Car, now time.Time) CarCard {
 	card := CarCard{
-		ID:          car.ID,
-		Title:       car.Title(),
-		Year:        car.Year,
-		City:        displayCity(car.City),
-		Description: car.Description,
-		Price:       domain.FormatCOP(car.PriceCents),
-		Status:      car.Status,
-		StatusLabel: StatusLabel(car.Status),
-		PhotoCount:  len(car.Photos),
+		ID:              car.ID,
+		Title:           car.Title(),
+		Year:            car.Year,
+		City:            displayCity(car.City),
+		Description:     car.Description,
+		Price:           domain.FormatCOP(car.PriceCents),
+		Status:          car.Status,
+		StatusLabel:     StatusLabel(car.Status),
+		RejectionReason: car.RejectionReason,
+		CanWithdraw:     car.Status == domain.CarStatusPending || car.Status == domain.CarStatusActive || car.Status == domain.CarStatusRejected,
+		SellerName:      car.SellerName,
+		CreatedAt:       car.CreatedAt,
+		PhotoCount:      len(car.Photos),
 	}
 	if len(car.Photos) > 0 {
 		card.CoverID = car.Photos[0].ID
@@ -306,37 +323,40 @@ func NewCarCard(car domain.Car, now time.Time) CarCard {
 
 func NewMyListing(car domain.Car, now time.Time) MyListing {
 	listing := MyListing{
-		ID:          car.ID,
-		Title:       car.Title(),
-		Year:        car.Year,
-		City:        displayCity(car.City),
-		Price:       domain.FormatCOP(car.PriceCents),
-		Status:      car.Status,
-		StatusLabel: StatusLabel(car.Status),
-		CanEdit:     car.CanEdit(now),
-		PublicURL:   "/cars/" + car.ID,
-		EditURL:     "/seller/publicaciones/" + car.ID + "/editar",
-		WithdrawURL: "/seller/publicaciones/" + car.ID + "/retirar",
+		ID:              car.ID,
+		Title:           car.Title(),
+		Year:            car.Year,
+		City:            displayCity(car.City),
+		Price:           domain.FormatCOP(car.PriceCents),
+		Status:          car.Status,
+		StatusLabel:     StatusLabel(car.Status),
+		RejectionReason: car.RejectionReason,
+		CanWithdraw:     car.Status == domain.CarStatusPending || car.Status == domain.CarStatusActive || car.Status == domain.CarStatusRejected,
+		CanEdit:         car.CanEdit(now),
+		PublicURL:       "/cars/" + car.ID,
+		EditURL:         "/seller/publicaciones/" + car.ID + "/editar",
+		WithdrawURL:     "/seller/publicaciones/" + car.ID + "/retirar",
 	}
 	return listing
 }
 
 func NewCarView(car domain.Car) CarView {
 	view := CarView{
-		ID:          car.ID,
-		Brand:       car.Brand,
-		Model:       car.Model,
-		City:        displayCity(car.City),
-		Title:       car.Title(),
-		Year:        car.Year,
-		Description: car.Description,
-		Price:       domain.FormatCOP(car.PriceCents),
-		PriceCents:  car.PriceCents,
-		SellerName:  car.SellerName,
-		Status:      car.Status,
-		StatusLabel: StatusLabel(car.Status),
-		CreatedAt:   car.CreatedAt,
-		EditedAt:    car.EditedAt,
+		ID:              car.ID,
+		Brand:           car.Brand,
+		Model:           car.Model,
+		City:            displayCity(car.City),
+		Title:           car.Title(),
+		Year:            car.Year,
+		Description:     car.Description,
+		Price:           domain.FormatCOP(car.PriceCents),
+		PriceCents:      car.PriceCents,
+		SellerName:      car.SellerName,
+		Status:          car.Status,
+		StatusLabel:     StatusLabel(car.Status),
+		CreatedAt:       car.CreatedAt,
+		EditedAt:        car.EditedAt,
+		RejectionReason: car.RejectionReason,
 	}
 	for index, photo := range car.Photos {
 		view.Photos = append(view.Photos, PhotoView{
@@ -450,6 +470,10 @@ func StatusLabel(status domain.CarStatus) string {
 	switch status {
 	case domain.CarStatusActive:
 		return "Activa"
+	case domain.CarStatusPending:
+		return "Pendiente de aprobación"
+	case domain.CarStatusRejected:
+		return "Rechazada"
 	case domain.CarStatusWithdrawn:
 		return "Retirada"
 	case domain.CarStatusRemoved:

@@ -71,19 +71,31 @@ func (h *PageHandler) Detail(c *gin.Context) {
 	car, err := h.catalog.GetActive(c.Request.Context(), c.Param("id"))
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			h.renderError(c, http.StatusNotFound, "La publicación no existe o ya no está disponible.")
+			user := currentUserPtr(c)
+			if user == nil {
+				h.renderError(c, http.StatusNotFound, "La publicación no existe o ya no está disponible.")
+				return
+			}
+			preview, previewErr := h.catalog.Get(c.Request.Context(), c.Param("id"))
+			if previewErr != nil || (preview.SellerID != user.ID && user.Role != domain.RoleAdmin) {
+				h.renderError(c, http.StatusNotFound, "La publicación no existe o ya no está disponible.")
+				return
+			}
+			car = preview
+			err = nil
+		}
+		if err != nil {
+			h.logger.ErrorContext(c.Request.Context(), "car_detail_failed", "error", err)
+			h.renderError(c, http.StatusInternalServerError, "No se pudo cargar la publicación.")
 			return
 		}
-		h.logger.ErrorContext(c.Request.Context(), "car_detail_failed", "error", err)
-		h.renderError(c, http.StatusInternalServerError, "No se pudo cargar la publicación.")
-		return
 	}
 
 	user := currentUserPtr(c)
 	page := views.CarDetailPage{
 		BasePage:   views.NewBasePage(httpapi.CSRFToken(c), user, car.Title(), "catalog"),
 		Car:        views.NewCarView(car),
-		CanContact: true,
+		CanContact: car.Status.IsActive(),
 	}
 	for index, photo := range car.Photos {
 		page.Photos = append(page.Photos, views.PhotoView{

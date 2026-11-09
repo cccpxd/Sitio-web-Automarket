@@ -45,7 +45,19 @@ type Message struct {
 	ReadAt         *time.Time
 }
 
-// ModerationEntry is the immutable audit record of an administrative removal.
+type ModerationAction string
+
+const (
+	ModerationActionApproved ModerationAction = "approved"
+	ModerationActionRejected ModerationAction = "rejected"
+	ModerationActionRemoved  ModerationAction = "removed"
+)
+
+func (a ModerationAction) IsValid() bool {
+	return a == ModerationActionApproved || a == ModerationActionRejected || a == ModerationActionRemoved
+}
+
+// ModerationEntry is the immutable audit record of an administrative action.
 type ModerationEntry struct {
 	ID        string
 	AdminID   string
@@ -53,6 +65,7 @@ type ModerationEntry struct {
 	CarID     string
 	CarTitle  string
 	Reason    string
+	Action    ModerationAction
 	CreatedAt time.Time
 }
 

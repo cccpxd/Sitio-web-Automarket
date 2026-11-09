@@ -14,7 +14,9 @@ import (
 type CarStatus string
 
 const (
+	CarStatusPending   CarStatus = "pending"
 	CarStatusActive    CarStatus = "active"
+	CarStatusRejected  CarStatus = "rejected"
 	CarStatusWithdrawn CarStatus = "withdrawn"
 	CarStatusRemoved   CarStatus = "removed"
 )
@@ -33,20 +35,21 @@ const (
 // Car is a vehicle listing. PriceCents is the authoritative amount, expressed
 // in cents of Colombian pesos (COP). The UI always renders whole COP.
 type Car struct {
-	ID          string
-	Brand       string
-	Model       string
-	City        string
-	Year        int
-	Description string
-	PriceCents  int64
-	SellerID    string
-	SellerName  string
-	Status      CarStatus
-	ClientToken string
-	CreatedAt   time.Time
-	EditedAt    *time.Time
-	Photos      []CarPhoto
+	ID              string
+	Brand           string
+	Model           string
+	City            string
+	Year            int
+	Description     string
+	PriceCents      int64
+	SellerID        string
+	SellerName      string
+	Status          CarStatus
+	RejectionReason string
+	ClientToken     string
+	CreatedAt       time.Time
+	EditedAt        *time.Time
+	Photos          []CarPhoto
 }
 
 // Title returns the short human-readable name of the listing.
@@ -56,7 +59,13 @@ func (c Car) Title() string {
 
 // CanEdit reports whether the seller may still edit the listing.
 func (c Car) CanEdit(now time.Time) bool {
-	return c.Status == CarStatusActive && !now.After(c.CreatedAt.Add(EditWindow))
+	if c.Status == CarStatusRejected {
+		return true
+	}
+	if c.Status != CarStatusPending && c.Status != CarStatusActive {
+		return false
+	}
+	return !now.After(c.CreatedAt.Add(EditWindow))
 }
 
 // CarInput is the raw data used to create or update a car.
@@ -81,7 +90,7 @@ type CarDetails struct {
 
 func (s CarStatus) IsValid() bool {
 	switch s {
-	case CarStatusActive, CarStatusWithdrawn, CarStatusRemoved:
+	case CarStatusPending, CarStatusActive, CarStatusRejected, CarStatusWithdrawn, CarStatusRemoved:
 		return true
 	default:
 		return false

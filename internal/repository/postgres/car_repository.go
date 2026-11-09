@@ -24,6 +24,7 @@ func NewCarRepository(db *sql.DB) *CarRepository {
 const carSelectColumns = `
 	c.id, c.brand, c.model, c.year, COALESCE(c.city, ''), c.description, c.price_cents,
 	c.seller_id, u.name, c.status, COALESCE(c.client_token, ''), c.created_at, c.edited_at,
+	COALESCE(rejection.reason, ''),
 	COALESCE(p.id, ''), COALESCE(p.content_type, ''), COALESCE(p.byte_size, 0),
 	COALESCE(p.sha256, ''), COALESCE(p.width, 0), COALESCE(p.height, 0),
 	COALESCE(p.created_at, 'epoch'::timestamptz)`
@@ -38,6 +39,14 @@ const carFromJoin = `
 		ORDER BY position
 		LIMIT 1
 	) p ON TRUE`
+const carRejectionJoin = `
+	LEFT JOIN LATERAL (
+		SELECT reason
+		FROM moderation_logs
+		WHERE car_id = c.id AND action = 'rejected'
+		ORDER BY created_at DESC, id DESC
+		LIMIT 1
+	) rejection ON TRUE`
 
 func (r *CarRepository) CreateWithPhotos(ctx context.Context, car domain.Car, photos []domain.CarPhoto) error {
 	tx, err := r.db.BeginTx(ctx, nil)
@@ -82,8 +91,9 @@ func (r *CarRepository) UpdateWithPhotos(ctx context.Context, car domain.Car, ph
 	result, err := tx.ExecContext(ctx, `
 		UPDATE cars
 		SET brand = $1, model = $2, year = $3, city = $4, description = $5,
-		    price_cents = $6, price = $7, edited_at = $8
-		WHERE id = $9 AND seller_id = $10 AND status = 'active' AND created_at >= $11`,
+		    price_cents = $6, price = $7, status = 'pending', edited_at = $8
+		WHERE id = $9 AND seller_id = $10
+		  AND ((status IN ('pending', 'active') AND created_at >= $11) OR status = 'rejected')`,
 		car.Brand, car.Model, car.Year, car.City, car.Description,
 		car.PriceCents, strconv.FormatInt(car.PriceCents/100, 10), car.EditedAt,
 		car.ID, car.SellerID, cutoff,
@@ -129,7 +139,7 @@ func (r *CarRepository) classifyUpdateFailure(ctx context.Context, id, sellerID 
 	if owner != sellerID {
 		return domain.ErrForbidden
 	}
-	if domain.CarStatus(status) != domain.CarStatusActive {
+	if domain.CarStatus(status) != domain.CarStatusPending && domain.CarStatus(status) != domain.CarStatusActive {
 		return domain.ErrConflict
 	}
 	return domain.ErrEditWindowClosed
@@ -137,7 +147,7 @@ func (r *CarRepository) classifyUpdateFailure(ctx context.Context, id, sellerID 
 
 func (r *CarRepository) Withdraw(ctx context.Context, id, sellerID string, at time.Time) error {
 	result, err := r.db.ExecContext(ctx,
-		`UPDATE cars SET status = 'withdrawn' WHERE id = $1 AND seller_id = $2 AND status = 'active'`,
+		`UPDATE cars SET status = 'withdrawn' WHERE id = $1 AND seller_id = $2 AND status IN ('pending', 'active', 'rejected')`,
 		id, sellerID,
 	)
 	if err != nil {
@@ -186,7 +196,7 @@ func (r *CarRepository) FindByID(ctx context.Context, id string) (domain.Car, er
 }
 
 func (r *CarRepository) findDetail(ctx context.Context, where string, args ...any) (domain.Car, error) {
-	query := `SELECT ` + carSelectColumns + carFromJoin + ` ` + where
+	query := `SELECT ` + carSelectColumns + carFromJoin + carRejectionJoin + ` ` + where
 	row := r.db.QueryRowContext(ctx, query, args...)
 	car, err := scanCar(row)
 	if err != nil {
@@ -247,7 +257,7 @@ func (r *CarRepository) Search(ctx context.Context, filters domain.SearchFilters
 
 	pageArgs := append([]any{}, args...)
 	pageArgs = append(pageArgs, filters.PageSize, filters.Offset())
-	query := `SELECT ` + carSelectColumns + carFromJoin + ` ` + where +
+	query := `SELECT ` + carSelectColumns + carFromJoin + carRejectionJoin + ` ` + where +
 		fmt.Sprintf(` ORDER BY c.created_at DESC, c.id DESC LIMIT $%d OFFSET $%d`, len(args)+1, len(args)+2)
 
 	cars, err := r.queryCars(ctx, query, pageArgs...)
@@ -258,13 +268,13 @@ func (r *CarRepository) Search(ctx context.Context, filters domain.SearchFilters
 }
 
 func (r *CarRepository) ListBySeller(ctx context.Context, sellerID string) ([]domain.Car, error) {
-	query := `SELECT ` + carSelectColumns + carFromJoin +
+	query := `SELECT ` + carSelectColumns + carFromJoin + carRejectionJoin +
 		` WHERE c.seller_id = $1 ORDER BY c.created_at DESC`
 	return r.queryCars(ctx, query, sellerID)
 }
 
 func (r *CarRepository) ListAll(ctx context.Context) ([]domain.Car, error) {
-	query := `SELECT ` + carSelectColumns + carFromJoin + ` ORDER BY c.created_at DESC`
+	query := `SELECT ` + carSelectColumns + carFromJoin + carRejectionJoin + ` ORDER BY c.created_at DESC`
 	return r.queryCars(ctx, query)
 }
 
@@ -304,7 +314,7 @@ func scanCar(scanner carRowScanner) (domain.Car, error) {
 
 	err := scanner.Scan(
 		&car.ID, &car.Brand, &car.Model, &car.Year, &car.City, &car.Description, &car.PriceCents,
-		&car.SellerID, &car.SellerName, &status, &car.ClientToken, &car.CreatedAt, &editedAt,
+		&car.SellerID, &car.SellerName, &status, &car.ClientToken, &car.CreatedAt, &editedAt, &car.RejectionReason,
 		&photoID, &photoType, &photoSize, &photoSHA, &photoWidth, &photoHeight, &photoCreated,
 	)
 	if err != nil {
