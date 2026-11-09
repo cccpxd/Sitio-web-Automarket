@@ -69,6 +69,7 @@ type CarWriteStore interface {
 	CreateWithPhotos(ctx context.Context, car domain.Car, photos []domain.CarPhoto) error
 	UpdateWithPhotos(ctx context.Context, car domain.Car, photos []domain.CarPhoto, replacePhotos bool, cutoff time.Time) error
 	Withdraw(ctx context.Context, id, sellerID string, at time.Time) error
+	DeletePermanently(ctx context.Context, id, ownerID string) error
 	FindByClientToken(ctx context.Context, sellerID, token string) (domain.Car, error)
 }
 

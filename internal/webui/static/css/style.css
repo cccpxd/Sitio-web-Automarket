@@ -94,6 +94,8 @@ nav a:hover, nav a.active { color: #fff; border-bottom-color: var(--accent); tex
 .btn-danger { background: var(--error); color: #fff; }
 .btn-danger:hover { background: #7f211a; }
 .btn-small { padding: 0.4rem 0.7rem; font-size: 0.82rem; }
+.btn-icon { width: 2rem; height: 2rem; padding: 0.4rem; }
+.btn-icon svg { width: 1rem; height: 1rem; }
 .btn.full { width: 100%; }
 
 .hero {

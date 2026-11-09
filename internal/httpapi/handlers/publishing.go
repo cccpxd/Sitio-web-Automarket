@@ -186,6 +186,22 @@ func (h *PublishingHandler) Withdraw(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/seller/ventas?retirada=1")
 }
 
+func (h *PublishingHandler) DeletePermanently(c *gin.Context) {
+	user, ok := httpapi.CurrentUser(c)
+	if !ok {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+	if err := h.publishing.DeletePermanently(c.Request.Context(), user.ID, c.Param("id")); err != nil {
+		if publishStatus(err) >= http.StatusInternalServerError {
+			h.logger.ErrorContext(c.Request.Context(), "delete_car_failed", "error", err)
+		}
+		h.renderPublishError(c, publishStatus(err), permanentDeleteErrorMessage(err))
+		return
+	}
+	c.Redirect(http.StatusFound, "/seller/ventas?eliminada=1")
+}
+
 func (h *PublishingHandler) Sales(c *gin.Context) {
 	user, ok := httpapi.CurrentUser(c)
 	if !ok {
@@ -245,6 +261,9 @@ func (h *PublishingHandler) Sales(c *gin.Context) {
 	}
 	if c.Query("pendiente") == "1" {
 		page.Flash = "La publicación quedó pendiente de revisión por un administrador."
+	}
+	if c.Query("eliminada") == "1" {
+		page.Flash = "La publicación se eliminó permanentemente."
 	}
 	renderHTML(c, h.renderer, h.logger, http.StatusOK, "sales.html", page)
 }
@@ -444,6 +463,19 @@ func publishErrorMessage(err error) string {
 }
 
 func uploadErrorMessage(err error) string { return publishErrorMessage(err) }
+
+func permanentDeleteErrorMessage(err error) string {
+	switch {
+	case errors.Is(err, domain.ErrForbidden):
+		return "No tienes permisos sobre esta publicación."
+	case errors.Is(err, domain.ErrNotFound):
+		return "La publicación no existe."
+	case errors.Is(err, domain.ErrConflict):
+		return "Solo se pueden eliminar permanentemente las publicaciones retiradas."
+	default:
+		return "No se pudo eliminar la publicación."
+	}
+}
 
 func publishStatus(err error) int {
 	switch {

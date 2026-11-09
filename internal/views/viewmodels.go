@@ -70,7 +70,9 @@ type CarCard struct {
 	CreatedAt       time.Time
 	CanEdit         bool
 	CanWithdraw     bool
+	CanDelete       bool
 	WithdrawURL     string
+	DeleteURL       string
 	PublicURL       string
 }
 
@@ -147,10 +149,12 @@ type MyListing struct {
 	StatusLabel     string
 	RejectionReason string
 	CanWithdraw     bool
+	CanDelete       bool
 	CanEdit         bool
 	PublicURL       string
 	EditURL         string
 	WithdrawURL     string
+	DeleteURL       string
 }
 
 // CarForm preserves user input across validation errors.
@@ -308,6 +312,8 @@ func NewCarCard(car domain.Car, now time.Time) CarCard {
 		StatusLabel:     StatusLabel(car.Status),
 		RejectionReason: car.RejectionReason,
 		CanWithdraw:     car.Status == domain.CarStatusPending || car.Status == domain.CarStatusActive || car.Status == domain.CarStatusRejected,
+		CanDelete:       car.Status == domain.CarStatusWithdrawn || car.Status == domain.CarStatusRemoved,
+		DeleteURL:       "/admin/publicaciones/" + car.ID + "/eliminar",
 		SellerName:      car.SellerName,
 		CreatedAt:       car.CreatedAt,
 		PhotoCount:      len(car.Photos),
@@ -332,10 +338,12 @@ func NewMyListing(car domain.Car, now time.Time) MyListing {
 		StatusLabel:     StatusLabel(car.Status),
 		RejectionReason: car.RejectionReason,
 		CanWithdraw:     car.Status == domain.CarStatusPending || car.Status == domain.CarStatusActive || car.Status == domain.CarStatusRejected,
+		CanDelete:       car.Status == domain.CarStatusWithdrawn || car.Status == domain.CarStatusRemoved,
 		CanEdit:         car.CanEdit(now),
 		PublicURL:       "/cars/" + car.ID,
 		EditURL:         "/seller/publicaciones/" + car.ID + "/editar",
 		WithdrawURL:     "/seller/publicaciones/" + car.ID + "/retirar",
+		DeleteURL:       "/seller/publicaciones/" + car.ID + "/eliminar",
 	}
 	return listing
 }

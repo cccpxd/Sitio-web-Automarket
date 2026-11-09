@@ -106,6 +106,20 @@ func (s *fakeCarStore) FindByClientToken(_ context.Context, sellerID, token stri
 	}
 	return domain.Car{}, domain.ErrNotFound
 }
+func (s *fakeCarStore) DeletePermanently(_ context.Context, id, ownerID string) error {
+	car, ok := s.cars[id]
+	if !ok {
+		return domain.ErrNotFound
+	}
+	if ownerID != "" && car.SellerID != ownerID {
+		return domain.ErrForbidden
+	}
+	if car.Status != domain.CarStatusWithdrawn && car.Status != domain.CarStatusRemoved {
+		return domain.ErrConflict
+	}
+	delete(s.cars, id)
+	return nil
+}
 
 type fakePhotoProcessor struct{}
 
@@ -152,5 +166,14 @@ func TestCatalogAndPublishingServices(t *testing.T) {
 		Brand: "Mazda", Model: "3", Year: 2020, Price: "1", Description: "x",
 	}); !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("update withdrawn error = %v", err)
+	}
+	if err := publishing.DeletePermanently(context.Background(), "other-seller", car.ID); !errors.Is(err, domain.ErrForbidden) {
+		t.Fatalf("delete another seller's car error = %v", err)
+	}
+	if err := publishing.DeletePermanently(context.Background(), "seller-1", car.ID); err != nil {
+		t.Fatalf("delete withdrawn car = %v", err)
+	}
+	if _, exists := store.cars[car.ID]; exists {
+		t.Fatal("withdrawn car was not permanently deleted")
 	}
 }

@@ -41,6 +41,7 @@ type PublishingService interface {
 	Create(ctx context.Context, sellerID string, input service.CreateCarInput) (domain.Car, error)
 	Update(ctx context.Context, sellerID, carID string, input service.UpdateCarInput) (domain.Car, error)
 	Withdraw(ctx context.Context, sellerID, carID string) error
+	DeletePermanently(ctx context.Context, sellerID, carID string) error
 	ListMine(ctx context.Context, sellerID string) ([]domain.Car, error)
 	Get(ctx context.Context, sellerID, carID string) (domain.Car, error)
 }
@@ -64,6 +65,7 @@ type ModerationService interface {
 	Remove(ctx context.Context, adminID, carID, reason string) error
 	Approve(ctx context.Context, adminID, carID string) error
 	Reject(ctx context.Context, adminID, carID, reason string) error
+	DeletePermanently(ctx context.Context, adminID, carID string) error
 	List(ctx context.Context) ([]domain.ModerationEntry, error)
 }
 

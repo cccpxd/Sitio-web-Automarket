@@ -63,6 +63,9 @@ func (h *ModerationHandler) Panel(c *gin.Context) {
 	if c.Query("rechazada") == "1" {
 		page.Flash = "La publicación fue rechazada y la razón quedó registrada."
 	}
+	if c.Query("eliminada") == "1" {
+		page.Flash = "La publicación se eliminó permanentemente."
+	}
 	renderHTML(c, h.renderer, h.logger, http.StatusOK, "moderation.html", page)
 }
 
@@ -129,6 +132,22 @@ func (h *ModerationHandler) Remove(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusFound, "/admin/moderacion?retirada=1")
+}
+
+func (h *ModerationHandler) DeletePermanently(c *gin.Context) {
+	user, ok := httpapi.CurrentUser(c)
+	if !ok {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+	if err := h.moderation.DeletePermanently(c.Request.Context(), user.ID, c.Param("id")); err != nil {
+		if moderationStatus(err) >= http.StatusInternalServerError {
+			h.logger.ErrorContext(c.Request.Context(), "delete_moderated_car_failed", "error", err)
+		}
+		renderErrorPage(c, h.renderer, h.logger, moderationStatus(err), permanentDeleteErrorMessage(err))
+		return
+	}
+	c.Redirect(http.StatusFound, "/admin/moderacion?eliminada=1")
 }
 
 func (h *ModerationHandler) Approve(c *gin.Context) {

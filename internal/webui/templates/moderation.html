@@ -63,6 +63,14 @@
                   {{else}}
                     <span class="muted">Retirada</span>
                   {{end}}
+                  {{if .CanDelete}}
+                    <form method="post" action="{{.DeleteURL}}" class="inline-form" data-confirm="¿Eliminar permanentemente esta publicación? También se borrarán sus fotografías, conversaciones y registros de moderación. Esta acción no se puede deshacer.">
+                      {{template "csrf" $}}
+                      <button type="submit" class="btn btn-small btn-danger btn-icon" title="Eliminar permanentemente" aria-label="Eliminar permanentemente">
+                        {{template "trash-icon" .}}
+                      </button>
+                    </form>
+                  {{end}}
                 </td>
               </tr>
             {{end}}
@@ -100,4 +108,5 @@
     {{end}}
   </section>
 </main>
+<script src="/static/js/confirm-actions.js" defer></script>
 {{template "footer" .}}

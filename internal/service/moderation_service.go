@@ -11,21 +11,23 @@ import (
 // an immutable audit entry.
 type ModerationService struct {
 	store ModerationStore
+	cars  CarWriteStore
 	ids   IDGenerator
 	clock Clock
 }
 
 type ModerationServiceDeps struct {
 	Store ModerationStore
+	Cars  CarWriteStore
 	IDs   IDGenerator
 	Clock Clock
 }
 
 func NewModerationService(deps ModerationServiceDeps) (*ModerationService, error) {
-	if deps.Store == nil || deps.IDs == nil || deps.Clock == nil {
+	if deps.Store == nil || deps.Cars == nil || deps.IDs == nil || deps.Clock == nil {
 		return nil, errors.New("moderation service: missing dependency")
 	}
-	return &ModerationService{store: deps.Store, ids: deps.IDs, clock: deps.Clock}, nil
+	return &ModerationService{store: deps.Store, cars: deps.Cars, ids: deps.IDs, clock: deps.Clock}, nil
 }
 
 // Remove withdraws a listing and stores the mandatory reason atomically.
@@ -82,6 +84,15 @@ func (s *ModerationService) Reject(ctx context.Context, adminID, carID, reason s
 		ID: entryID, AdminID: adminID, CarID: carID, Reason: normalized,
 		Action: domain.ModerationActionRejected, CreatedAt: s.clock.Now(),
 	})
+}
+
+// DeletePermanently removes a withdrawn or removed listing and all of its
+// associated records on behalf of an administrator.
+func (s *ModerationService) DeletePermanently(ctx context.Context, adminID, carID string) error {
+	if adminID == "" {
+		return domain.ErrForbidden
+	}
+	return s.cars.DeletePermanently(ctx, carID, "")
 }
 
 // List returns the historical moderation log.

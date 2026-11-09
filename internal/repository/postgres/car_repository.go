@@ -179,6 +179,47 @@ func (r *CarRepository) Withdraw(ctx context.Context, id, sellerID string, at ti
 	return domain.ErrConflict
 }
 
+func (r *CarRepository) DeletePermanently(ctx context.Context, id, ownerID string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("postgres: begin delete car: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var owner string
+	var status string
+	err = tx.QueryRowContext(ctx, `SELECT seller_id, status FROM cars WHERE id = $1 FOR UPDATE`, id).Scan(&owner, &status)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.ErrNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("postgres: find car to delete: %w", err)
+	}
+	if ownerID != "" && owner != ownerID {
+		return domain.ErrForbidden
+	}
+	if domain.CarStatus(status) != domain.CarStatusWithdrawn && domain.CarStatus(status) != domain.CarStatusRemoved {
+		return domain.ErrConflict
+	}
+
+	// Conversations and moderation evidence reference cars with ON DELETE
+	// RESTRICT. Removing them in the same transaction keeps the permanent
+	// deletion atomic; messages disappear with their conversations.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM conversations WHERE car_id = $1`, id); err != nil {
+		return fmt.Errorf("postgres: delete car conversations: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM moderation_logs WHERE car_id = $1`, id); err != nil {
+		return fmt.Errorf("postgres: delete car moderation logs: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM cars WHERE id = $1`, id); err != nil {
+		return fmt.Errorf("postgres: delete car: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("postgres: commit delete car: %w", err)
+	}
+	return nil
+}
+
 func (r *CarRepository) FindActive(ctx context.Context, id string) (domain.Car, error) {
 	car, err := r.findDetail(ctx, `WHERE c.id = $1 AND c.status = 'active'`, id)
 	if errors.Is(err, sql.ErrNoRows) {

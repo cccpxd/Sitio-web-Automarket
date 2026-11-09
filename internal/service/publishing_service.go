@@ -210,6 +210,15 @@ func (s *PublishingService) Withdraw(ctx context.Context, sellerID, carID string
 	return s.cars.Withdraw(ctx, carID, sellerID, s.clock.Now())
 }
 
+// DeletePermanently removes a withdrawn or administratively removed listing,
+// together with its photos, conversations and moderation records.
+func (s *PublishingService) DeletePermanently(ctx context.Context, sellerID, carID string) error {
+	if sellerID == "" {
+		return domain.ErrForbidden
+	}
+	return s.cars.DeletePermanently(ctx, carID, sellerID)
+}
+
 // ListMine returns the seller's own listings, including withdrawn ones.
 func (s *PublishingService) ListMine(ctx context.Context, sellerID string) ([]domain.Car, error) {
 	return s.reader.ListBySeller(ctx, sellerID)

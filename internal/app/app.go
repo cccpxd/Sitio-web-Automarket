@@ -161,6 +161,7 @@ func buildMarketplaceServices(db *sql.DB) (marketplaceServices, error) {
 	}
 	moderation, err := service.NewModerationService(service.ModerationServiceDeps{
 		Store: postgres.NewModerationRepository(db),
+		Cars:  carRepository,
 		IDs:   ids,
 		Clock: clockPort,
 	})

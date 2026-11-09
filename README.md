@@ -106,9 +106,9 @@ Las tablas se crean automáticamente al arrancar. Si defines `ADMIN_EMAIL` y `AD
 - Los vendedores publican en `/seller/publicar` con ciudad obligatoria de hasta 80 caracteres; las fotografías JPEG/PNG se validan, normalizan y guardan en PostgreSQL, con máximo 6 archivos de 5 MiB.
 - El detalle muestra las fotografías en un visor modal: se abre desde la foto principal o miniaturas, se navega con anterior/siguiente o las flechas, y se cierra con `Esc` o `Cerrar`. Sin JavaScript, las fotos abren en la misma pestaña.
 - Las publicaciones nuevas quedan `pending` hasta la aprobación de un administrador. Editar una publicación activa o pendiente la devuelve a revisión; una rechazada puede corregirse sin límite de tiempo y muestra la razón del rechazo. Solo el propietario y los administradores pueden previsualizar publicaciones no activas.
-- `/seller/ventas` combina el catálogo activo con las publicaciones propias, incluidas las pendientes, rechazadas y retiradas lógicamente; desde allí el vendedor puede editar o retirar las que correspondan.
+- `/seller/ventas` combina el catálogo activo con las publicaciones propias, incluidas las pendientes, rechazadas y retiradas lógicamente; desde allí el vendedor puede editar, retirar o eliminar permanentemente las retiradas.
 - `/mensajes` conserva conversaciones por publicación; los administradores pueden leerlas, pero no responder.
-- `/admin/moderacion` permite aprobar publicaciones pendientes, rechazar publicaciones con razón obligatoria y retirarlas; cada acción se conserva en `moderation_logs`.
+- `/admin/moderacion` permite aprobar publicaciones pendientes, rechazar publicaciones con razón obligatoria, retirarlas y eliminar permanentemente las retiradas; cada acción se conserva en `moderation_logs` hasta que la publicación se elimine definitivamente.
 
 ## Pruebas y validación
 

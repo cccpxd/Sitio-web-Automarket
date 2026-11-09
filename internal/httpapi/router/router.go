@@ -107,6 +107,7 @@ func New(deps Dependencies) (*gin.Engine, error) {
 	seller.GET("/seller/publicaciones/:id/editar", publishingHandler.EditForm)
 	seller.POST("/seller/publicaciones/:id/editar", publishingHandler.Update)
 	seller.POST("/seller/publicaciones/:id/retirar", publishingHandler.Withdraw)
+	seller.POST("/seller/publicaciones/:id/eliminar", publishingHandler.DeletePermanently)
 
 	admin := engine.Group("/")
 	admin.Use(middleware.RequireRolePage(deps.Auth, deps.Cookie.Name, deps.Logger, domain.RoleAdmin))
@@ -114,6 +115,7 @@ func New(deps Dependencies) (*gin.Engine, error) {
 	admin.GET("/admin/moderacion", moderationHandler.Panel)
 	admin.GET("/admin/publicaciones/:id/retirar", moderationHandler.Confirm)
 	admin.POST("/admin/publicaciones/:id/retirar", moderationHandler.Remove)
+	admin.POST("/admin/publicaciones/:id/eliminar", moderationHandler.DeletePermanently)
 	admin.POST("/admin/publicaciones/:id/aprobar", moderationHandler.Approve)
 	admin.GET("/admin/publicaciones/:id/rechazar", moderationHandler.RejectConfirm)
 	admin.POST("/admin/publicaciones/:id/rechazar", moderationHandler.Reject)
